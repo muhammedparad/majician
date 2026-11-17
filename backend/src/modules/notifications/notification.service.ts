@@ -25,7 +25,7 @@ export const notificationService = {
       if (previous.userId !== record.userId || previous.channel !== record.channel || previous.type !== record.type) {
         throw new ApiError(409, 'KEY_CONFLICT', 'Use a unique notification key.');
       }
-      return { status: previous.status, duplicate: true };
+      if (previous.status !== 'FAILED') return { status: previous.status, duplicate: true };
     }
     let status: string;
     try {

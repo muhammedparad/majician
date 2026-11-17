@@ -94,12 +94,23 @@ test('FAQ works without a provider and validates message length', () => {
   assert.equal(chatInput.safeParse({ message: 'a'.repeat(501) }).success, false);
 });
 
-test('Gemini uses the configured model and falls back on provider failure', async () => {
+test('Gemini uses the configured model, forwards history, and falls back on provider failure', async () => {
+  const history = [
+    { role: 'user' as const, text: 'How do shares work?' },
+    { role: 'model' as const, text: 'Goats are 1 share; cows are 7 shares.' },
+  ];
+  assert.equal(chatInput.safeParse({ message: 'And camels?', history }).success, true);
+  assert.equal(chatInput.safeParse({ message: 'Too long history', history: Array(11).fill(history[0]) }).success, false);
   const response = await chat('Where is my profile?', async (url, init) => {
     assert.match(String(url), /fake-model:generateContent$/);
     assert.equal(new Headers(init?.headers).get('x-goog-api-key'), 'fake-key');
+    const body = JSON.parse(String(init?.body));
+    assert.equal(body.contents.length, 3);
+    assert.equal(body.contents[0].role, 'user');
+    assert.equal(body.contents[1].role, 'model');
+    assert.equal(body.contents[2].parts[0].text, 'Where is my profile?');
     return Response.json({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'Open Profile.' }] } }] });
-  });
+  }, history);
   assert.deepEqual(response, { answer: 'Open Profile.', provider: 'gemini' });
   assert.equal((await chat('password', async () => Response.json({}, { status: 503 }))).provider, 'faq');
 });

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from 'react';
 import { api } from '../../api/client';
+import { Spinner } from '../../features/motion/primitives';
 
 export function PageHead({ eyebrow, title, sub, action }: { eyebrow: ReactNode; title: ReactNode; sub?: string; action?: ReactNode }) {
   return <div className="pagehead"><div className="am-headrow"><div>
@@ -57,6 +58,6 @@ export function useAction() {
   return { busy, error, run, submit, setError };
 }
 
-export const Loading = () => <p className="am-note" role="status">Loading…</p>;
+export const Loading = () => <p className="am-note am-btn-content" role="status"><Spinner /><span>Loading…</span></p>;
 export const ErrorNote = ({ message }: { message: string }) => <p className="am-error" role="alert">{message}</p>;
 export const form = (data: FormData, key: string) => String(data.get(key) ?? '').trim();

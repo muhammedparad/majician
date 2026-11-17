@@ -11,16 +11,19 @@ const reply = z.object({
   })).optional(),
 });
 
-const timeoutMs = 6000;
+const timeoutMs = 20_000;
 const callsPerMinute = 30;
 let windowStart = 0;
 let calls = 0;
+
+export type GeminiTurn = { role: 'user' | 'model'; text: string };
 
 export async function generateGemini(options: {
   input: string;
   instructions: string;
   maxOutputTokens: number;
   jsonSchema?: Record<string, unknown>;
+  history?: GeminiTurn[];
 }, request = fetch) {
   if (!env.GEMINI_API_KEY) throw new ApiError(503, 'AI_UNAVAILABLE', 'Gemini is not configured.');
 
@@ -43,7 +46,10 @@ export async function generateGemini(options: {
         signal,
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: options.instructions }] },
-          contents: [{ role: 'user', parts: [{ text: options.input }] }],
+          contents: [
+            ...(options.history ?? []).map(turn => ({ role: turn.role, parts: [{ text: turn.text }] })),
+            { role: 'user', parts: [{ text: options.input }] },
+          ],
           generationConfig: {
             maxOutputTokens: options.maxOutputTokens,
             ...(options.jsonSchema ? { responseMimeType: 'application/json', responseJsonSchema: options.jsonSchema } : {}),

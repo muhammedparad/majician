@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { AnimatedNumber } from '../../features/motion/primitives';
 import { IconHand, IconHeart, IconShield, IconUsers } from './Icons';
 import { KnowMore } from './KnowMore';
 
@@ -16,6 +17,7 @@ export interface RightRailProps {
   goalTitle?: string;
   goalRaised?: number;
   goalTarget?: number;
+  goalUnit?: 'currency' | 'packets';
   goalLabel?: string;
   insightQuote?: string;
   insightLabel?: string;
@@ -24,49 +26,18 @@ export interface RightRailProps {
 }
 
 export const RightRail: React.FC<RightRailProps> = ({
-  goalTitle = 'Eid Meat Distribution',
-  goalRaised = 7200,
-  goalTarget = 10000,
+  goalTitle = 'Udhiyya Collection',
+  goalRaised = 0,
+  goalTarget = 0,
+  goalUnit = 'currency',
   goalLabel = 'UDHIYYA GOAL',
   insightQuote = '“Your Udhiyya contributions and shares are distributed directly to eligible families across your Mahallu for Eid.”',
   insightLabel = 'EID INSIGHT',
   activityLink = '/app/manage/ledger',
-  activities
+  activities = [],
 }) => {
-  const goalPct = Math.round((goalRaised / goalTarget) * 100);
-
-  const defaultActivities: ActivityItem[] = [
-    {
-      icon: 'users',
-      cls: 'amber',
-      title: 'Manual meat handover recorded',
-      amount: '−₹8,80,426',
-      isPlus: false
-    },
-    {
-      icon: 'hand',
-      cls: '',
-      title: 'Meat distribution confirmed',
-      amount: '+₹15,000',
-      isPlus: true
-    },
-    {
-      icon: 'heart',
-      cls: '',
-      title: 'Udhiyya contribution',
-      amount: '−₹20,000',
-      isPlus: false
-    }
-  ];
-
-  const items = activities || defaultActivities;
-
-  const mahallusData: [string, string, string, string][] = [
-    ['Kannur Mahallu', '1,420 members', '₹1,26,840', '+12.4%'],
-    ['Kozhikode Mahallu', '980 members', '₹74,220', '+8.6%'],
-    ['Malappuram Mahallu', '650 members', '₹28,410', '+21.8%'],
-    ['Wayanad Mahallu', '320 members', '₹19,150', '+2.1%']
-  ];
+  const goalPct = goalTarget > 0 ? Math.min(100, Math.round((goalRaised / goalTarget) * 100)) : 0;
+  const items = activities;
 
   const renderIcon = (type: string, cls = '') => {
     switch (type) {
@@ -115,7 +86,15 @@ export const RightRail: React.FC<RightRailProps> = ({
         </div>
         <h3 style={{ fontSize: 19, margin: '10px 0 4px' }}>{goalTitle}</h3>
         <p style={{ fontSize: 13.5, color: 'var(--muted)' }}>
-          ₹{goalRaised.toLocaleString('en-IN')} of ₹{goalTarget.toLocaleString('en-IN')} · {goalPct}%
+          {goalUnit === 'packets' ? (
+            <>
+              <AnimatedNumber value={goalRaised} /> of {goalTarget.toLocaleString('en-IN')} packets · <AnimatedNumber value={goalPct} />%
+            </>
+          ) : (
+            <>
+              ₹<AnimatedNumber value={goalRaised} /> of ₹{goalTarget.toLocaleString('en-IN')} · <AnimatedNumber value={goalPct} />%
+            </>
+          )}
         </p>
         <div className="progress" style={{ marginTop: 12 }}>
           <i style={{ width: `${goalPct}%` }}></i>
@@ -145,52 +124,23 @@ export const RightRail: React.FC<RightRailProps> = ({
           </Link>
         </div>
         <div style={{ marginTop: 6 }}>
-          {items.map((a, i) => (
-            <div key={i} className="act-row">
-              {renderIcon(a.icon, a.cls)}
-              <div className="grow">
-                <div className="t">{a.title}</div>
-                {a.detail && <div className="d">{a.detail}</div>}
+          {items.length === 0 ? (
+            <p style={{ fontSize: 13.5, color: 'var(--muted)', padding: '12px 0 4px', margin: 0 }}>
+              No recent activity yet.
+            </p>
+          ) : (
+            items.map((a, i) => (
+              <div key={i} className="act-row">
+                {renderIcon(a.icon, a.cls)}
+                <div className="grow">
+                  <div className="t">{a.title}</div>
+                  {a.detail && <div className="d">{a.detail}</div>}
+                </div>
+                <div className={`amt ${a.isPlus ? 'plus' : ''}`}>{a.amount}</div>
               </div>
-              <div className={`amt ${a.isPlus ? 'plus' : ''}`}>{a.amount}</div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
-      </section>
-
-      {/* 4. Community Activity Card */}
-      <section className="card" aria-label="Community activity">
-        <div className="eyebrow">
-          <span className="dot"></span>COMMUNITY ACTIVITY
-        </div>
-        <div style={{ display: 'flex', gap: 18, margin: '12px 0 4px' }}>
-          <div>
-            <div style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: 22, color: 'var(--ink2)' }}>24</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>new applications</div>
-          </div>
-          <div>
-            <div style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: 22, color: 'var(--ink2)' }}>−8%</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>vs last month</div>
-          </div>
-          <div>
-            <div style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: 22, color: 'var(--ink2)' }}>₹12,48,620</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>total distributed</div>
-          </div>
-        </div>
-
-        {mahallusData.map((m) => (
-          <div key={m[0]} className="mahallu-row">
-            <span className="dotm"></span>
-            <div className="grow">
-              <div className="n">{m[0]}</div>
-              <div className="m">{m[1]}</div>
-            </div>
-            <div>
-              <div className="amt">{m[2]}</div>
-              <div className="chg">{m[3]}</div>
-            </div>
-          </div>
-        ))}
       </section>
     </div>
   );

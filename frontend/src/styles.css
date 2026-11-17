@@ -22,7 +22,21 @@ nav {
   max-width: 72rem; padding: .85rem clamp(1rem, 5vw, 3rem); margin: auto;
   display: flex; align-items: center; flex-wrap: wrap; gap: .75rem 1.25rem;
 }
-.brand { margin-right: auto; font-weight: 750; text-decoration: none; color: inherit; }
+.brand { margin-right: auto; font-weight: 750; text-decoration: none; color: inherit; display: inline-flex; align-items: center; }
+.brand-logo-img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+  flex: none;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.brand-logo-md { height: 2rem; }
 main { max-width: 72rem; margin: auto; padding: clamp(2rem, 7vw, 5rem) clamp(1rem, 5vw, 3rem); }
 h1, h2, p { margin: 0 0 .75rem; }
 h1 { font-size: clamp(2rem, 5vw, 3.15rem); letter-spacing: -.045em; line-height: 1.1; }

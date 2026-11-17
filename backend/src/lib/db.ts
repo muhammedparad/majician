@@ -4,9 +4,9 @@ import { PrismaClient, type Prisma } from '../generated/prisma/client.js';
 
 const adapter = new PrismaPg({
   connectionString: env.DATABASE_URL,
-  max: env.NODE_ENV === 'production' ? 5 : 3,
-  connectionTimeoutMillis: 5000,
-  statement_timeout: 10000,
+  max: 5,
+  connectionTimeoutMillis: 15000,
+  statement_timeout: 15000,
 });
 export const db = new PrismaClient({ adapter });
 

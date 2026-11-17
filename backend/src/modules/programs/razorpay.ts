@@ -16,6 +16,9 @@ export const razorpay = {
   /** Creates the order the checkout widget pays against. The amount is in paise. */
   async createOrder(input: { amountPaise: number; receipt: string; notes: Record<string, string> }, request = fetch) {
     if (!razorpayEnabled) throw unavailable();
+    if (!Number.isInteger(input.amountPaise) || input.amountPaise < 100) {
+      throw new ApiError(400, 'INVALID_AMOUNT', 'Minimum payment amount is ₹1.');
+    }
     const auth = Buffer.from(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`).toString('base64');
     try {
       const response = await request('https://api.razorpay.com/v1/orders', { method: 'POST', signal: AbortSignal.timeout(10_000),

@@ -1,0 +1,818 @@
+/* ==========================================================================
+   UDHIYYA SAVER — PREMIUM MOTION & ANIMATION SYSTEM
+   GPU-friendly (transform / opacity), zero layout shift, reduced-motion safe.
+   Strictly preserves existing layouts, spacing, typography, and colors.
+   ========================================================================== */
+
+.am {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-smooth: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+  --dur-micro: 160ms;
+  --dur-btn: 190ms;
+  --dur-overlay: 240ms;
+  --dur-page: 320ms;
+  --dur-onboard: 440ms;
+}
+
+.am-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   KEYFRAMES (GPU-composited properties only)
+   -------------------------------------------------------------------------- */
+@keyframes am-page-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes am-fade-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes am-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes am-modal-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes am-chat-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes am-notice-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -4px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes am-error-shake {
+  0% {
+    opacity: 0;
+    transform: translate3d(-4px, 0, 0);
+  }
+  25% {
+    opacity: 1;
+    transform: translate3d(4px, 0, 0);
+  }
+  50% {
+    transform: translate3d(-3px, 0, 0);
+  }
+  75% {
+    transform: translate3d(2px, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes am-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes am-badge-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes am-success-pulse {
+  0% {
+    transform: scale(0.98);
+  }
+  50% {
+    transform: scale(1.015);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes am-bar-grow {
+  from {
+    opacity: 0.25;
+    transform: scaleY(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes am-progress-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes am-underline-draw {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes am-auth-aside-from-right {
+  from {
+    opacity: 0.72;
+    transform: translate3d(24px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes am-auth-aside-from-left {
+  from {
+    opacity: 0.72;
+    transform: translate3d(-24px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes am-wave-in {
+  from {
+    opacity: 0.8;
+    transform: translate3d(0, -14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes am-ambient-drift {
+  0% {
+    transform: translate3d(-4%, -3%, 0) scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(4%, 3%, 0) scale(1.05);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(-2%, 5%, 0) scale(1.01);
+    opacity: 0.6;
+  }
+}
+
+@keyframes am-contour-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(6px, -4px, 0);
+  }
+  100% {
+    transform: translate3d(-4px, 4px, 0);
+  }
+}
+
+@keyframes am-ring-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(-8px, 6px, 0) scale(1.04);
+  }
+}
+
+@keyframes am-tick-draw {
+  from {
+    stroke-dashoffset: 40;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   A. PAGE TRANSITIONS & SCROLL-TRIGGERED REVEALS
+   -------------------------------------------------------------------------- */
+.am .am-page-enter {
+  animation: am-page-in var(--dur-page) var(--ease-out) both;
+}
+
+.am-reveal-ready [data-app-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  transition:
+    opacity 420ms var(--ease-out) var(--reveal-d, 0ms),
+    transform 420ms var(--ease-out) var(--reveal-d, 0ms);
+}
+
+.am-reveal-ready [data-app-reveal].am-in {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* --------------------------------------------------------------------------
+   B. AUTHENTICATION ANIMATIONS & SUBTLE BACKGROUND EFFECTS
+   -------------------------------------------------------------------------- */
+.am-auth-shell .am-auth-aside {
+  position: relative;
+  overflow: hidden;
+  animation: am-auth-aside-from-right 440ms var(--ease-out) both;
+}
+
+.am-auth-shell .am-auth-split.am-auth-aside-left .am-auth-aside {
+  animation-name: am-auth-aside-from-left;
+}
+
+.am-auth-shell .am-auth-aside::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background: radial-gradient(
+    55% 55% at 62% 38%,
+    rgba(104, 196, 160, 0.14) 0%,
+    rgba(42, 143, 114, 0.06) 45%,
+    transparent 72%
+  );
+  animation: am-ambient-drift 18s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+.am-auth-shell .am-auth-aside-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.am-auth-shell .am-auth-aside-inner > h2 {
+  animation: am-fade-up 380ms var(--ease-out) 90ms both;
+}
+
+.am-auth-shell .am-auth-aside-inner > p {
+  animation: am-fade-up 380ms var(--ease-out) 150ms both;
+}
+
+.am-auth-shell .am-auth-aside-inner > .am-auth-aside-btn {
+  animation: am-fade-up 380ms var(--ease-out) 210ms both;
+}
+
+/* Staggered form entrance on both PC & Mobile */
+.am-auth-shell .am-auth-brand {
+  animation: am-fade-up 320ms var(--ease-out) 20ms both;
+}
+
+.am-auth-shell .am-auth-title {
+  animation: am-fade-up 360ms var(--ease-out) 60ms both;
+}
+
+.am-auth-shell .am-auth-subtitle {
+  animation: am-fade-up 360ms var(--ease-out) 105ms both;
+}
+
+.am-auth-shell .am-auth-form .am-auth-field:nth-of-type(1) {
+  animation: am-fade-up 360ms var(--ease-out) 140ms both;
+}
+
+.am-auth-shell .am-auth-form .am-auth-field:nth-of-type(2) {
+  animation: am-fade-up 360ms var(--ease-out) 185ms both;
+}
+
+.am-auth-shell .am-auth-form .am-auth-field:nth-of-type(3) {
+  animation: am-fade-up 360ms var(--ease-out) 230ms both;
+}
+
+.am-auth-shell .am-auth-form .am-auth-field:nth-of-type(4) {
+  animation: am-fade-up 360ms var(--ease-out) 270ms both;
+}
+
+.am-auth-shell .am-auth-forgot-desktop,
+.am-auth-shell .am-auth-row-mobile {
+  animation: am-fade-up 340ms var(--ease-out) 225ms both;
+}
+
+.am-auth-shell .am-auth-form button[type="submit"] {
+  animation: am-fade-up 360ms var(--ease-out) 260ms both;
+}
+
+.am-auth-shell .am-auth-footer {
+  animation: am-fade-up 360ms var(--ease-out) 305ms both;
+}
+
+/* Mobile wave header & slow contour drift */
+@media (max-width: 859px) {
+  .am-auth-shell .am-auth-mobile-header {
+    animation: am-wave-in 420ms var(--ease-out) both;
+  }
+
+  .am-auth-shell .am-auth-title::after {
+    transform-origin: left center;
+    animation: am-underline-draw 380ms var(--ease-out) 160ms both;
+  }
+
+  .am-auth-shell .am-auth-contours {
+    animation: am-contour-drift 18s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   C. FORM INTERACTIONS & VALIDATION FEEDBACK
+   -------------------------------------------------------------------------- */
+.am-auth-shell .am-auth-input-wrap {
+  transition:
+    border-color var(--dur-micro) var(--ease-out),
+    box-shadow var(--dur-micro) var(--ease-out),
+    background-color var(--dur-micro) var(--ease-out);
+}
+
+.am-auth-shell .am-auth-icon-left {
+  transition: color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+
+.am-auth-shell .am-auth-input-wrap:focus-within .am-auth-icon-left {
+  color: var(--auth-green);
+  transform: scale(1.04);
+}
+
+.am-auth-shell .am-auth-eye {
+  transition:
+    color var(--dur-micro) var(--ease-out),
+    background-color var(--dur-micro) var(--ease-out),
+    transform 120ms var(--ease-snappy);
+}
+
+.am-auth-shell .am-auth-eye:active {
+  transform: scale(0.9);
+}
+
+.am-auth-shell .am-auth-eye svg {
+  transition: opacity var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+
+.am-auth-shell .am-auth-remember input[type="checkbox"] {
+  transition:
+    background-color var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out),
+    transform 140ms var(--ease-out);
+}
+
+.am-auth-shell .am-auth-remember input[type="checkbox"]:active {
+  transform: scale(0.9);
+}
+
+.am .inp,
+.am .searchbox,
+.am select.mini,
+.am .chat-panel input {
+  transition:
+    border-color var(--dur-micro) var(--ease-out),
+    box-shadow var(--dur-micro) var(--ease-out),
+    background-color var(--dur-micro) var(--ease-out);
+}
+
+.am .searchbox:focus-within {
+  border-color: var(--mid);
+  box-shadow: 0 0 0 3px rgba(42, 143, 114, 0.14);
+}
+
+.am .chat-panel input:focus {
+  border-color: var(--mid);
+  box-shadow: 0 0 0 3px rgba(42, 143, 114, 0.14);
+  outline: none;
+}
+
+/* Notice & validation states */
+.am .am-error,
+.am .notice.error,
+.am-auth-shell .am-auth-notice.error {
+  animation: am-error-shake 320ms var(--ease-out) both;
+}
+
+.am .am-ok,
+.am .notice:not(.error),
+.am-auth-shell .am-auth-notice:not(.error) {
+  animation: am-notice-in 240ms var(--ease-out) both;
+}
+
+/* --------------------------------------------------------------------------
+   D. BUTTONS, LOADING SPINNER & SUCCESS FEEDBACK
+   -------------------------------------------------------------------------- */
+.am .pillbtn,
+.am .chipbtn,
+.am .iconbtn,
+.am .mchips a,
+.am .mchips button,
+.am .chat > button,
+.am .dnav nav a,
+.am .dnav nav button,
+.am .mtabs a,
+.am .mtabs button,
+.am-auth-shell .am-auth-form button[type="submit"],
+.am-auth-shell .am-auth-aside-btn,
+.am-auth-shell .am-auth-google-btn,
+.am-auth-shell .am-auth-secondary-btn {
+  transition:
+    background-color var(--dur-btn) var(--ease-out),
+    border-color var(--dur-btn) var(--ease-out),
+    color var(--dur-btn) var(--ease-out),
+    box-shadow var(--dur-btn) var(--ease-out),
+    transform var(--dur-micro) var(--ease-out),
+    opacity var(--dur-micro) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .am .pillbtn:not(:disabled):hover,
+  .am-auth-shell .am-auth-form button[type="submit"]:not(:disabled):hover {
+    transform: translateY(-1.5px);
+    box-shadow: 0 10px 22px rgba(8, 80, 56, 0.22);
+  }
+
+  .am .pillbtn.ghost:not(:disabled):hover,
+  .am .pillbtn.light:not(:disabled):hover,
+  .am-auth-shell .am-auth-google-btn:hover,
+  .am-auth-shell .am-auth-secondary-btn:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(11, 42, 34, 0.1);
+  }
+
+  .am-auth-shell .am-auth-aside-btn:hover {
+    transform: translateY(-1.5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+  }
+
+  .am .chipbtn:not(:disabled):hover,
+  .am .mchips a:hover,
+  .am .mchips button:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  .am .iconbtn:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  .am .chat > button:hover {
+    transform: translateY(-1.5px);
+    box-shadow: 0 14px 28px rgba(14, 92, 72, 0.34);
+  }
+}
+
+.am .pillbtn:not(:disabled):active,
+.am .chipbtn:not(:disabled):active,
+.am .iconbtn:not(:disabled):active,
+.am .mchips a:active,
+.am .mchips button:not(:disabled):active,
+.am .chat > button:active,
+.am .mtabs a:active,
+.am .mtabs button:active,
+.am-auth-shell .am-auth-form button[type="submit"]:not(:disabled):active,
+.am-auth-shell .am-auth-aside-btn:active,
+.am-auth-shell .am-auth-google-btn:active,
+.am-auth-shell .am-auth-secondary-btn:not(:disabled):active {
+  transform: scale(0.975);
+}
+
+/* Inline spinner for button busy & loading states */
+.am-spinner {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: am-spin 0.68s linear infinite;
+  flex: none;
+}
+
+.am-spinner.light {
+  border-color: rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+}
+
+.am-btn-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.am-btn-success {
+  animation: am-success-pulse 320ms var(--ease-out);
+}
+
+.am .am-loading {
+  animation: am-fade-in 260ms var(--ease-out) both;
+}
+
+/* --------------------------------------------------------------------------
+   E. CARDS, MODALS, DROPDOWNS & NOTIFICATIONS
+   -------------------------------------------------------------------------- */
+.am .stat,
+.am .card,
+.am .mcard,
+.am .recip,
+.am .mlist-row,
+.am .am-mahallu,
+.am .am-animal,
+.am .am-task {
+  transition:
+    transform var(--dur-btn) var(--ease-out),
+    box-shadow var(--dur-btn) var(--ease-out),
+    border-color var(--dur-btn) var(--ease-out),
+    background-color var(--dur-btn) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .am .stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px rgba(11, 42, 34, 0.1);
+  }
+
+  .am .recip:hover,
+  .am .mlist-row:hover,
+  .am .am-task:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px rgba(11, 42, 34, 0.11);
+  }
+
+  .am .am-task:hover svg:last-child,
+  .am .mlist-row:hover svg.chev,
+  .am .am-rowbtn:hover svg:last-child {
+    transform: translateX(2px);
+  }
+}
+
+.am .am-task svg:last-child,
+.am .mlist-row svg.chev,
+.am .am-rowbtn svg:last-child {
+  transition: transform var(--dur-micro) var(--ease-out);
+}
+
+.am .act-row,
+.am .mahallu-row,
+.am .notif-row,
+.am .am-plan-row {
+  transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .am .act-row:hover,
+  .am .mahallu-row:hover {
+    background: rgba(238, 245, 241, 0.55);
+    border-radius: 12px;
+  }
+}
+
+/* Modal & Sheet transitions */
+.am .modal-wrap {
+  animation: am-fade-in 200ms var(--ease-out) both;
+}
+
+.am .modal {
+  animation: am-modal-in 260ms var(--ease-out) both;
+}
+
+.am .chat-panel {
+  transform-origin: bottom right;
+  animation: am-chat-in 240ms var(--ease-out) both;
+}
+
+.am .chat-panel .messages > div {
+  animation: am-fade-up 220ms var(--ease-out) both;
+}
+
+.am .am-menu {
+  transform-origin: top right;
+  animation: dropdownIn 200ms var(--ease-out) both;
+}
+
+.am .am-menu.left {
+  transform-origin: top left;
+}
+
+.am .msheet .mlist-row {
+  animation: am-fade-up 260ms var(--ease-out) both;
+}
+.am .msheet .mlist-row:nth-child(1) { animation-delay: 30ms; }
+.am .msheet .mlist-row:nth-child(2) { animation-delay: 60ms; }
+.am .msheet .mlist-row:nth-child(3) { animation-delay: 90ms; }
+.am .msheet .mlist-row:nth-child(4) { animation-delay: 120ms; }
+.am .msheet .mlist-row:nth-child(5) { animation-delay: 150ms; }
+.am .msheet .mlist-row:nth-child(6) { animation-delay: 180ms; }
+.am .msheet .mlist-row:nth-child(7) { animation-delay: 210ms; }
+
+/* Notifications & Toast */
+.am .badge {
+  animation: am-badge-pop 260ms var(--ease-out) both;
+}
+
+.am .toast {
+  animation: am-modal-in 260ms var(--ease-out) both;
+}
+
+.am .notif-row {
+  animation: am-fade-up 280ms var(--ease-out) both;
+}
+.am .notif-row:nth-child(1) { animation-delay: 20ms; }
+.am .notif-row:nth-child(2) { animation-delay: 55ms; }
+.am .notif-row:nth-child(3) { animation-delay: 90ms; }
+.am .notif-row:nth-child(4) { animation-delay: 125ms; }
+.am .notif-row:nth-child(5) { animation-delay: 160ms; }
+.am .notif-row:nth-child(n + 6) { animation-delay: 190ms; }
+
+/* --------------------------------------------------------------------------
+   F. DASHBOARD INTERACTIONS, SIDEBAR, CHARTS & PROGRESS BARS
+   -------------------------------------------------------------------------- */
+.am .hero-panel,
+.am .mbalance,
+.am .am-hero2 {
+  animation: am-fade-up 360ms var(--ease-out) both;
+}
+
+.am .hero-panel::before,
+.am .mbalance::after {
+  animation: am-ring-drift 20s ease-in-out infinite alternate;
+}
+
+.am .hero-panel::after {
+  animation: am-ring-drift 26s ease-in-out infinite alternate-reverse;
+}
+
+/* Staggered stat cards */
+.am .stat-grid .stat {
+  animation: am-fade-up 340ms var(--ease-out) both;
+}
+.am .stat-grid .stat:nth-child(1) { animation-delay: 55ms; }
+.am .stat-grid .stat:nth-child(2) { animation-delay: 110ms; }
+.am .stat-grid .stat:nth-child(3) { animation-delay: 165ms; }
+.am .stat-grid .stat:nth-child(4) { animation-delay: 220ms; }
+
+/* Staggered mobile 2-column summary cards & quick chips */
+.am .t2col > .mcard {
+  animation: am-fade-up 340ms var(--ease-out) both;
+}
+.am .t2col > .mcard:nth-child(1) { animation-delay: 70ms; }
+.am .t2col > .mcard:nth-child(2) { animation-delay: 130ms; }
+
+.am .mchips > * {
+  animation: am-fade-up 300ms var(--ease-out) both;
+}
+.am .mchips > *:nth-child(1) { animation-delay: 40ms; }
+.am .mchips > *:nth-child(2) { animation-delay: 80ms; }
+.am .mchips > *:nth-child(3) { animation-delay: 120ms; }
+.am .mchips > *:nth-child(4) { animation-delay: 160ms; }
+
+.am .shell-mobile .recip {
+  animation: am-fade-up 280ms var(--ease-out) both;
+}
+
+/* Staggered right-rail cards */
+.am .rail > .card {
+  animation: am-fade-up 360ms var(--ease-out) both;
+}
+.am .rail > .card:nth-child(1) { animation-delay: 70ms; }
+.am .rail > .card:nth-child(2) { animation-delay: 140ms; }
+.am .rail > .card:nth-child(3) { animation-delay: 210ms; }
+.am .rail > .card:nth-child(4) { animation-delay: 280ms; }
+
+/* Smooth sidebar drawer nav stagger */
+.am .dside .dside-nav a {
+  opacity: 0;
+  transform: translate3d(-8px, 0, 0);
+  transition:
+    opacity 240ms var(--ease-out),
+    transform 260ms var(--ease-out),
+    background-color var(--dur-micro) var(--ease-out),
+    color var(--dur-micro) var(--ease-out);
+}
+
+.am .dside.open .dside-nav a {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+.am .dside.open .dside-nav a:nth-child(1) { transition-delay: 40ms; }
+.am .dside.open .dside-nav a:nth-child(2) { transition-delay: 70ms; }
+.am .dside.open .dside-nav a:nth-child(3) { transition-delay: 100ms; }
+.am .dside.open .dside-nav a:nth-child(4) { transition-delay: 130ms; }
+.am .dside.open .dside-nav a:nth-child(5) { transition-delay: 160ms; }
+.am .dside.open .dside-nav a:nth-child(6) { transition-delay: 190ms; }
+.am .dside.open .dside-nav a:nth-child(7) { transition-delay: 220ms; }
+.am .dside.open .dside-nav a:nth-child(8) { transition-delay: 250ms; }
+
+/* Smooth progress bar reveal (GPU scaleX from left) */
+.am .progress i {
+  transform-origin: left center;
+  animation: am-progress-fill 620ms var(--ease-out) 120ms both;
+}
+
+/* Smooth SVG chart rendering (ActivityChart) */
+.am .chart-bar {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: am-bar-grow 500ms var(--ease-out) var(--bar-d, 0ms) both;
+  transition: opacity var(--dur-micro) var(--ease-out), filter var(--dur-micro) var(--ease-out);
+}
+
+.am .chart-val {
+  animation: am-fade-in 260ms var(--ease-out) calc(var(--bar-d, 0ms) + 220ms) both;
+}
+
+@media (hover: hover) {
+  .am .chart-bar:hover {
+    opacity: 0.9;
+    filter: brightness(0.95);
+  }
+}
+
+/* Onboarding welcome transitions */
+.am .am-welcome {
+  animation: am-fade-up var(--dur-onboard) var(--ease-out) both;
+}
+
+.am .am-tick svg path {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 0;
+  animation: am-tick-draw 420ms var(--ease-out) 160ms both;
+}
+
+/* --------------------------------------------------------------------------
+   ACCESSIBILITY: RESPECT PREFERS-REDUCED-MOTION
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .am *,
+  .am *::before,
+  .am *::after,
+  .am-auth-shell *,
+  .am-auth-shell *::before,
+  .am-auth-shell *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .am-reveal-ready [data-app-reveal],
+  .am .dside .dside-nav a {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

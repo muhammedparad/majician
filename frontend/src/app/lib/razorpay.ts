@@ -1,5 +1,9 @@
 type Options = Record<string, unknown>;
-type Checkout = { open(): void };
+type FailedEvent = { error?: { description?: string; reason?: string } };
+type Checkout = {
+  open(): void;
+  on?(event: 'payment.failed', callback: (response: FailedEvent) => void): void;
+};
 declare global {
   interface Window { Razorpay?: new (options: Options) => Checkout }
 }
@@ -18,11 +22,25 @@ export function loadCheckout() {
   });
 }
 
-/** Opens Razorpay's checkout. Resolves with the signed result, or null if the person closed the window. */
+/** Opens Razorpay's checkout. Resolves with the signed result, null if dismissed, or rejects on payment.failed. */
 export async function openCheckout(options: Options) {
   await loadCheckout();
-  return new Promise<CheckoutResult | null>(resolve => {
-    const checkout = new window.Razorpay!({ ...options, handler: (result: CheckoutResult) => resolve(result), modal: { ondismiss: () => resolve(null) } });
+  return new Promise<CheckoutResult | null>((resolve, reject) => {
+    let settled = false;
+    const finish = (action: () => void) => {
+      if (settled) return;
+      settled = true;
+      action();
+    };
+    const checkout = new window.Razorpay!({
+      ...options,
+      handler: (result: CheckoutResult) => finish(() => resolve(result)),
+      modal: { ondismiss: () => finish(() => resolve(null)) },
+    });
+    checkout.on?.('payment.failed', (response) => {
+      const message = response?.error?.description || 'Payment failed. Please try again.';
+      finish(() => reject(new Error(message)));
+    });
     checkout.open();
   });
 }

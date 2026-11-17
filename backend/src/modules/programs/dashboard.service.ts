@@ -37,6 +37,19 @@ export const dashboardService = {
     const given = issued._sum.packets ?? 0;
     const out = handed._sum.packets ?? 0;
     const receipts = await db.distribution.count({ where: { programId, receivedAt: { not: null } } });
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthly = Array.from({ length: 6 }, (_, index) => {
+      const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - index), 1));
+      const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+      return { month: key, label: monthNames[date.getUTCMonth()], amount: 0 };
+    });
+    const bucketByMonth = new Map(monthly.map(item => [item.month, item]));
+    for (const payment of confirmed) {
+      const when = payment.confirmedAt ?? payment.createdAt;
+      const key = `${when.getUTCFullYear()}-${String(when.getUTCMonth() + 1).padStart(2, '0')}`;
+      const bucket = bucketByMonth.get(key);
+      if (bucket) bucket.amount += payment.amount;
+    }
     return {
       program: { id: program.id, name: program.name, status: program.status },
       households, bookedHouseholds: new Set(bookings.map(item => item.householdId)).size, bookings: bookings.length,
@@ -45,6 +58,7 @@ export const dashboardService = {
         cash: sum('CASH'), online: sum('ONLINE'), spent, balance: collected - spent,
         paid: money.filter(item => item.standing === 'PAID').length, onTrack: money.filter(item => item.standing === 'ON_TRACK').length,
         behind: money.filter(item => item.standing === 'BEHIND').length },
+      monthly,
       animals: { total: animals.reduce((acc, row) => acc + row._count, 0), pending: count('PENDING'), slaughtered: count('SLAUGHTERED'),
         processing: count('PROCESSING'), packed: count('PACKED') },
       meat: { issued: given, handedOut: out, inHand: given - out, householdsServed: served.length, handovers: handed._count, confirmed: receipts },

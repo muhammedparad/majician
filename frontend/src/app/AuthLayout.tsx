@@ -1,14 +1,16 @@
-import { Link, Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import './app.css';
 import './app-extra.css';
 import './auth.css';
+import './motion.css';
 
 export function AuthLayout() {
-  return <div className="am am-auth">
-    <header className="am-auth-nav">
-      <Link className="logo" to="/" aria-label="Udhiyya Saver home"><span className="mark">U</span>UDHIYYA SAVER</Link>
-      <Link className="am-auth-back" to="/">Back to site</Link>
-    </header>
-    <main><Outlet /></main>
+  const { pathname } = useLocation();
+  return <div className="am am-auth-shell">
+    <main className="am-auth-main">
+      <div key={pathname} className="am-auth-route">
+        <Outlet />
+      </div>
+    </main>
   </div>;
 }

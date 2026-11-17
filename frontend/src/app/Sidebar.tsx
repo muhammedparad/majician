@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { BrandLogo } from '../components/BrandLogo';
 import { useAuth } from '../contexts/auth';
 import { initials, useApp } from './lib/app-context';
 import { IconArrowUpRight, IconBook, IconChevronRight } from './ui/Icons';
@@ -34,7 +35,9 @@ export function Sidebar({ groups, onNavigate }: { groups: Group[]; onNavigate?()
   if (!user) return null;
   const place = (activeMahallu?.mahalluName ?? volunteer?.mahalluName ?? ctx?.households[0]?.mahalluName ?? '').replace(/ mahallu$/i, '');
   return <div className="am-sidebar">
-    <Link className="am-sb-brand" to="/app" onClick={onNavigate} aria-label="Udhiyya Saver dashboard"><span className="mark">U</span>UDHIYYA SAVER</Link>
+    <Link className="am-sb-brand" to="/app" onClick={onNavigate} aria-label="Udhiyya dashboard">
+      <BrandLogo className="am-brand-logo" decorative />
+    </Link>
     <Link className="am-sb-user" to="/app/profile" onClick={onNavigate} aria-label="Open your profile">
       <span className="am-sb-avatar" aria-hidden="true">{initials(user.name)}</span>
       <span className="am-sb-who"><b>{user.name}</b><span>{roleLabel(isSuper, adminOf.length > 0, !!volunteer)}{place ? ` • ${place}` : ''}</span></span>

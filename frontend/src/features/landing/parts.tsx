@@ -22,8 +22,8 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={icons[name]} /></svg>;
 }
 
-export function Tag({ children, dark }: { children: ReactNode; dark?: boolean }) {
-  return <span className={'lp-tag' + (dark ? ' lp-tag-dark' : '')}><i />{children}</span>;
+export function Tag({ children, dark, leading }: { children: ReactNode; dark?: boolean; leading?: ReactNode }) {
+  return <span className={'lp-tag' + (dark ? ' lp-tag-dark' : '')}>{leading ?? <i />}{children}</span>;
 }
 
 export function Heading({ bold, italic, as: Tag = 'h2', className = '' }:

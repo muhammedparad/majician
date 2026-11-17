@@ -59,24 +59,30 @@ test('tracking, notifications, receipt confirmation, expenses, public ledger and
   assert.deepEqual([first.animals[0].code, first.animals[0].ahead, second.animals[0].code, second.animals[0].ahead], ['GOT-01', 0, 'GOT-02', 1]);
   assert.deepEqual([second.queue.total, second.queue.pending, second.queue.upNext.code], [2, 2, 'GOT-01']);
   assert.equal((await call(outsider, 'get', '/me/tracking')).body.programs.length, 0);
-  assert.equal((await call(bob, 'get', '/me/inbox')).body.unread, 0);
+  assert.equal((await call(bob, 'get', '/me/inbox')).body.unread, 1);
+  assert.equal((await call(bob, 'get', '/me/inbox')).body.items[0].kind, 'animal.allocated');
 
   // Slaughtering GOT-01 tells Alice, and tells Bob his animal is next, exactly once.
   const animalsOf = (await call(stat, 'get', '/volunteer/animals')).body as { id: string; code: string }[];
   const got1 = animalsOf.find(a => a.code === 'GOT-01')!.id;
   assert.equal((await call(stat, 'put', `/volunteer/animals/${got1}/status`, { status: 'SLAUGHTERED' })).status, 200);
   const bobInbox = (await call(bob, 'get', '/me/inbox')).body;
-  assert.deepEqual(bobInbox.items.map((i: { kind: string; title: string }) => [i.kind, i.title]), [['animal.next', 'GOT-02 is next']]);
-  assert.equal(bobInbox.unread, 1);
+  assert.deepEqual(bobInbox.items.map((i: { kind: string; title: string }) => [i.kind, i.title]), [
+    ['animal.next', 'GOT-02 is next'],
+    ['animal.allocated', 'Animal allocated: GOT-02'],
+  ]);
+  assert.equal(bobInbox.unread, 2);
   assert.equal((await call(alice, 'get', '/me/inbox')).body.items[0].title, 'GOT-01 has been slaughtered');
   assert.equal((await call(admin, 'put', `/animals/${got1}/status`, { status: 'SLAUGHTERED' })).status, 200);
-  assert.equal((await call(bob, 'get', '/me/inbox')).body.items.length, 1);
+  assert.equal((await call(bob, 'get', '/me/inbox')).body.items.length, 2);
   const after = (await call(bob, 'get', '/me/tracking')).body.programs[0];
   assert.deepEqual([after.animals[0].ahead, after.queue.slaughtered, after.queue.upNext.code], [0, 1, 'GOT-02']);
   await call(stat, 'put', `/volunteer/animals/${got1}/status`, { status: 'PROCESSING' });
+  assert.equal((await call(alice, 'get', '/me/inbox')).body.items[0].title, 'GOT-01 is being processed');
   await call(stat, 'put', `/volunteer/animals/${got1}/status`, { status: 'PACKED' });
   assert.equal((await call(alice, 'get', '/me/inbox')).body.items[0].title, 'GOT-01 is packed');
-  assert.equal((await call(bob, 'post', '/me/inbox/read', { ids: [bobInbox.items[0].id] })).body.unread, 0);
+  assert.equal((await call(bob, 'post', '/me/inbox/read', { ids: [bobInbox.items[0].id] })).body.unread, 1);
+  assert.equal((await call(bob, 'post', '/me/inbox/read', {})).body.unread, 0);
   assert.equal((await call(alice, 'post', '/me/inbox/read', {})).body.unread, 0);
 
   // Meat reaches Alice's household; only she can confirm it, and only once.

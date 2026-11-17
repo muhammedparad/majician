@@ -1,13 +1,14 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth';
-import { greeting } from '../lib/app-context';
-import { IconChevronRight, IconCheck, IconClock, IconPackage, IconUsers } from '../ui/Icons';
-import { IconClipboard, IconEdit, IconGear, IconPlus } from '../ui/icons3';
-import { IconAnimal, IconPulse, IconTruck } from '../ui/more-icons';
+import { AnimatedNumber, useAppReveal } from '../../features/motion/primitives';
+import { greeting, shortMahallu } from '../lib/app-context';
+import { IconChevronRight, IconCheck, IconClock, IconPackage } from '../ui/Icons';
+import { IconClipboard, IconEdit, IconGear } from '../ui/icons3';
+import { IconPulse, IconTruck } from '../ui/more-icons';
 import { ErrorNote, Loading, useFetch } from '../ui/kit';
 import { KnowMore } from '../ui/KnowMore';
-import { RightRail } from '../ui/RightRail';
+import { RightRail, type ActivityItem } from '../ui/RightRail';
 
 type Overview = {
   volunteer: { name: string; mahalluName: string; canStatus: boolean; canDistribute: boolean };
@@ -15,6 +16,7 @@ type Overview = {
   animals: { total: number; pending: number; slaughtered: number; processing: number; packed: number };
   meat: { issued: number; distributed: number; inHand: number; programDistributed: number };
 };
+type ActivityRow = { id: string; type: 'ANIMAL' | 'HANDOVER'; title: string; detail: string; at: string };
 
 function Task({ to, icon, title, text, badge, tone }: { to: string; icon: ReactNode; title: string; text: string; badge?: string; tone?: 'amber' }) {
   return (
@@ -30,10 +32,20 @@ function Task({ to, icon, title, text, badge, tone }: { to: string; icon: ReactN
 /** The volunteer's home: today's tasks and how the whole programme is going. */
 export function VolunteerDashboard() {
   const { user } = useAuth();
+  const revealRoot = useRef<HTMLDivElement>(null);
   const { data, error, loading } = useFetch<Overview>('/volunteer/overview');
+  const activity = useFetch<ActivityRow[]>('/volunteer/activity');
+  useAppReveal(revealRoot, Boolean(data));
   if (loading && !data) return <Loading />;
   if (!data) return <ErrorNote message={error} />;
   const { volunteer, program, animals, meat } = data;
+  const recentActivities: ActivityItem[] = (activity.data ?? []).slice(0, 5).map(row => ({
+    icon: row.type === 'HANDOVER' ? 'hand' : 'shield',
+    title: row.title,
+    detail: row.type === 'HANDOVER' ? `House ${row.detail}` : row.detail,
+    amount: new Date(row.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+    isPlus: true,
+  }));
   const notPacked = animals.total - animals.packed;
   const atLeast = { slaughtered: animals.slaughtered + animals.processing + animals.packed, processing: animals.processing + animals.packed, packed: animals.packed };
   const percent = animals.total ? Math.round((atLeast.slaughtered + atLeast.processing + atLeast.packed) / (animals.total * 3) * 100) : 0;
@@ -47,17 +59,17 @@ export function VolunteerDashboard() {
   const nameParts = (user?.name || '').split(' ');
   const firstName = nameParts[0] || 'Volunteer';
   const lastName = nameParts.slice(1).join(' ');
-  const place = volunteer.mahalluName.replace(/ mahallu$/i, '');
+  const place = shortMahallu(volunteer.mahalluName);
 
   return (
-    <div className="dgrid">
+    <div className="dgrid" ref={revealRoot}>
       {/* Left Column */}
       <div>
         {/* Hero Panel */}
         <section className="hero-panel" aria-label="Welcome">
           <span className="tag live">
             <i />
-            {place} Mahallu · Volunteer Duty
+            {place} · Volunteer Duty
           </span>
           <h1 style={{ marginTop: 16 }}>
             {greeting()}, {firstName} {lastName && <span className="serif">{lastName}.</span>}
@@ -95,7 +107,7 @@ export function VolunteerDashboard() {
               DISTRIBUTION OVERVIEW · MEAT PACKETS
             </div>
             <div style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: 42, letterSpacing: '-.02em' }}>
-              {meat.distributed} <span style={{ fontSize: 20, fontWeight: 500, color: '#cfe7db' }}>of {meat.issued}</span>
+              <AnimatedNumber value={meat.distributed} /> <span style={{ fontSize: 20, fontWeight: 500, color: '#cfe7db' }}>of {meat.issued}</span>
             </div>
           </div>
         </section>
@@ -104,19 +116,19 @@ export function VolunteerDashboard() {
         <div className="stat-grid" role="list" aria-label="Volunteer totals">
           <div className="stat" role="listitem">
             <div className="eyebrow">Total Animals</div>
-            <div className="v">{animals.total}</div>
+            <div className="v"><AnimatedNumber value={animals.total} /></div>
             <div className="s">{animals.slaughtered} slaughtered</div>
           </div>
 
           <div className="stat" role="listitem">
             <div className="eyebrow">Packets Assigned</div>
-            <div className="v">{meat.issued}</div>
+            <div className="v"><AnimatedNumber value={meat.issued} /></div>
             <div className="s">{meat.inHand} in hand to deliver</div>
           </div>
 
           <div className="stat" role="listitem">
             <div className="eyebrow">Distributed</div>
-            <div className="v">{meat.distributed}</div>
+            <div className="v"><AnimatedNumber value={meat.distributed} /></div>
             <div className="s">confirmed handovers</div>
           </div>
 
@@ -125,18 +137,18 @@ export function VolunteerDashboard() {
               <div className="eyebrow" style={{ margin: 0 }}>Mahallu Status</div>
               <KnowMore title="Volunteer Verification" ariaLabel="Know more about volunteer status">
                 <p style={{ margin: 0 }}>
-                  Authorized volunteer on duty for {place} Mahallu committee.
+                  Authorized volunteer on duty for {place} committee.
                 </p>
               </KnowMore>
             </div>
             <div className="v" style={{ fontSize: 21, paddingTop: 5 }}>Active Volunteer</div>
-            <div className="s">{place} Mahallu</div>
+            <div className="s">{place}</div>
           </div>
         </div>
 
         {/* Tasks and Programme Progress */}
         <div style={{ marginTop: 22, display: 'grid', gap: 18 }}>
-          <section className="card">
+          <section className="card" data-app-reveal="">
             <div className="am-cardhead" style={{ marginBottom: 14 }}>
               <span className="am-tile"><IconClipboard /></span>
               <div>
@@ -155,7 +167,7 @@ export function VolunteerDashboard() {
             </div>
           </section>
 
-          <section className="card">
+          <section className="card" data-app-reveal="">
             <div className="am-headrow" style={{ alignItems: 'center' }}>
               <div className="am-cardhead" style={{ margin: 0 }}>
                 <span className="am-tile"><IconPulse /></span>
@@ -196,11 +208,13 @@ export function VolunteerDashboard() {
       <RightRail
         goalTitle="Distribution Goal"
         goalRaised={meat.distributed}
-        goalTarget={meat.issued > 0 ? meat.issued : 100}
+        goalTarget={meat.issued}
+        goalUnit="packets"
         goalLabel="DUTY GOAL"
         insightQuote="“The best of people are those that bring most benefit to the rest of mankind.”"
         insightLabel="SERVICE INSIGHT"
         activityLink="/app/volunteer/activity"
+        activities={recentActivities}
       />
     </div>
   );

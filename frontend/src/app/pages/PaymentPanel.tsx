@@ -18,7 +18,7 @@ const statusText = { PENDING: 'Pending', CONFIRMED: 'Paid', REJECTED: 'Not compl
 export function PayModal({ bookingId, money, close, done }: { bookingId: string; money: Money; close(): void; done(): void }) {
   const { user } = useAuth();
   const { toast } = useApp();
-  const config = useFetch<{ online: boolean }>('/payments/config');
+  const config = useFetch<{ online: boolean; mode?: 'live' | 'test' | null }>('/payments/config');
   const { busy, error, run, setError } = useAction();
   const [amount, setAmount] = useState(String(money.suggested || money.remaining));
   const [method, setMethod] = useState<'ONLINE' | 'CASH'>('ONLINE');
@@ -30,7 +30,7 @@ export function PayModal({ bookingId, money, close, done }: { bookingId: string;
     const order = await api<{ paymentId: string; orderId: string; amountPaise: number; currency: string; keyId: string; description: string }>(
       `/bookings/${bookingId}/payments/online`, 'POST', { amount: value }, true);
     const result = await openCheckout({ key: order.keyId, amount: order.amountPaise, currency: order.currency, order_id: order.orderId,
-      name: 'Udhiyya Saver', description: order.description, prefill: { name: user?.name, email: user?.email }, theme: { color: '#0e5c48' } });
+      name: 'Udhiyya', image: `${window.location.origin}/brand/udhiyya-mark.png`, description: order.description, prefill: { name: user?.name, email: user?.email, ...(user?.phone ? { contact: user.phone } : {}) }, theme: { color: '#0b4927' } });
     if (!result) { setError('The payment window was closed. Nothing was charged.'); return; }
     await api(`/payments/${order.paymentId}/verify`, 'POST', { razorpayPaymentId: result.razorpay_payment_id, signature: result.razorpay_signature }, true);
     toast('Payment received. Thank you!'); done(); close();
@@ -48,7 +48,7 @@ export function PayModal({ bookingId, money, close, done }: { bookingId: string;
       <button type="button" className={method === 'ONLINE' ? 'on' : ''} onClick={() => setMethod('ONLINE')}>Pay online</button>
       <button type="button" className={method === 'CASH' ? 'on' : ''} onClick={() => setMethod('CASH')}>Pay cash</button></div>
     {method === 'ONLINE' ? (online === false ? <p className="am-error">Online payments are not enabled yet. Please pay your committee in cash for now.</p> :
-      <p className="am-note">UPI, cards and net banking through Razorpay. You will see a secure payment window.</p>) :
+      <p className="am-note">UPI, cards and net banking through Razorpay. You will see a secure payment window.{config.data?.mode === 'test' ? ' (Test mode — no real money is charged.)' : ''}</p>) :
       <p className="am-note">Hand the amount to your mahallu committee. They record it in the app and it appears here as paid.</p>}
     {error && <p className="am-error" role="alert">{error}</p>}
     {method === 'ONLINE' && <button type="button" className="pillbtn" disabled={busy || !valid || online !== true} onClick={() => void payOnline()}>

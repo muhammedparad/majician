@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import { db, runSerializable } from '../../lib/db.js';
 import { ApiError } from '../../lib/http.js';
 import { assertMahalluAdmin } from '../mahallus/mahallus.service.js';
+import { trackingService } from '../tracking/tracking.service.js';
 import { animalCode, animalTypes, planAllocation, shuffle, slotAt } from './programs.logic.js';
 import type { allocationInput, drawInput } from './programs.schema.js';
 
@@ -40,6 +41,7 @@ export const allocationService = {
       }
       await tx.program.update({ where: { id: programId }, data: { allocatedAt: new Date(), drawStartAt: null, drawMinutes: null } });
     });
+    await trackingService.onAllocated(programId);
     return allocationService.view(actor, programId);
   },
 
@@ -98,6 +100,7 @@ export const allocationService = {
       await tx.shareAllocation.deleteMany({ where: { bookingId } });
       await tx.shareAllocation.createMany({ data: input.items.map(item => ({ bookingId, animalId: item.animalId, shares: item.shares })) });
     });
+    await trackingService.onAllocated(booking.programId, bookingId);
     return allocationService.view(actor, booking.programId);
   },
 

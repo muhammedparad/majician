@@ -2,8 +2,10 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { AppProvider, useApp } from './lib/app-context';
 import { AppShell } from './AppShell';
 import { Welcome } from './pages/Welcome';
+import { Spinner } from '../features/motion/primitives';
 import './app.css';
 import './app-extra.css';
+import './motion.css';
 
 export function AppRoot() {
   return <AppProvider><AppShell /></AppProvider>;
@@ -24,6 +26,6 @@ export function WelcomeRoot() {
 
 function WelcomeGate() {
   const { loading, error, reload } = useApp();
-  return <div className="am am-focus">{loading ? <p role="status" className="am-loading">Loading…</p> : error ?
+  return <div className="am am-focus">{loading ? <p role="status" className="am-loading"><Spinner /><span>Loading…</span></p> : error ?
     <div className="am-loading"><p>We could not load your details.</p><button className="pillbtn sm" onClick={() => void reload()}>Try again</button></div> : <Welcome />}</div>;
 }

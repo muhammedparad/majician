@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/auth';
+import { BrandLogo } from './components/BrandLogo';
 import { AuthPage } from './pages/auth';
 import { Landing } from './pages/landing';
 import { AuthLayout } from './app/AuthLayout';
@@ -45,6 +46,7 @@ createRoot(document.getElementById('root')!).render(
     </Route>
     <Route element={<PublicLayout />}>
       <Route path="transparency" element={<TransparencyIndex />} />
+      <Route path="transparency/all" element={<TransparencyIndex showList />} />
       <Route path="transparency/:id" element={<TransparencyLedger />} />
     </Route>
     <Route element={<Protected />}>
@@ -69,6 +71,6 @@ createRoot(document.getElementById('root')!).render(
     </Route>
     <Route path="dashboard" element={<Navigate to="/app" replace />} />
     <Route path="profile" element={<Navigate to="/app/profile" replace />} />
-    <Route path="*" element={<section className="panel" style={{ margin: '4rem auto' }}><h1>Page not found</h1><Link to="/">Go home</Link></section>} />
+    <Route path="*" element={<section className="panel" style={{ margin: '4rem auto' }}><Link to="/" aria-label="Udhiyya home" style={{ display: 'inline-flex', marginBottom: '1.25rem' }}><BrandLogo className="brand-logo-md" decorative /></Link><h1>Page not found</h1><Link to="/">Go home</Link></section>} />
   </Routes></AuthProvider></BrowserRouter>,
 );

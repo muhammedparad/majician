@@ -20,16 +20,23 @@ export async function sendTelegram(chatId: string, text: string) {
   try {
     const response = await fetch('https://api.telegram.org/bot' + env.TELEGRAM_BOT_TOKEN + '/sendMessage', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text }), signal: AbortSignal.timeout(5000),
+      body: JSON.stringify({ chat_id: chatId, text }), signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) {
+      const status = response.status;
       await response.body?.cancel();
+      log('telegram.delivery_failed', { status });
       throw new Error('Rejected');
     }
     const result = await response.json() as { ok?: boolean };
-    if (result.ok !== true) throw new Error('Rejected');
-  } catch {
-    log('telegram.delivery_failed');
+    if (result.ok !== true) {
+      log('telegram.delivery_failed', { reason: 'not_ok' });
+      throw new Error('Rejected');
+    }
+  } catch (error) {
+    if (!(error instanceof Error && error.message === 'Rejected')) {
+      log('telegram.delivery_failed', { kind: error instanceof Error ? error.name : 'Unknown' });
+    }
     throw new ApiError(503, 'TELEGRAM_UNAVAILABLE', 'Telegram delivery could not be confirmed.');
   }
 }

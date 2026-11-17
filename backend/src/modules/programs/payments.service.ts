@@ -133,7 +133,7 @@ export const paymentService = {
     const finance = bookings.map(booking => financeOf(booking));
     const rows = await db.programPayment.findMany({ where: { booking: { programId } }, orderBy: { createdAt: 'desc' }, take: 300,
       include: { booking: { select: { animalType: true, household: { select: { mahalluNumber: true, ownerName: true } } } } } });
-    const confirmed = rows.filter(row => row.status === 'CONFIRMED');
+    const confirmed = bookings.flatMap(booking => booking.payments.filter(item => item.status === 'CONFIRMED'));
     const sum = (method: string) => confirmed.filter(row => row.method === method).reduce((acc, row) => acc + row.amount, 0);
     return {
       expected: finance.reduce((acc, item) => acc + item.total, 0), collected: finance.reduce((acc, item) => acc + item.paid, 0),

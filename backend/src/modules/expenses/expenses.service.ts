@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { db } from '../../lib/db.js';
 import { ApiError } from '../../lib/http.js';
 import { assertMahalluAdmin } from '../mahallus/mahallus.service.js';
+import { summarizePublicOperations } from './public.logic.js';
 
 type Actor = { id: string; permissions: string[] };
 export const categories = ['ANIMALS', 'TRANSPORT', 'LABOUR', 'PACKING', 'FOOD', 'OTHER'] as const;
@@ -62,36 +63,92 @@ export const expenseService = {
     return { voided: true };
   },
 
-  /** Programs whose books anyone may read. Only aggregate money and expenses are shown, never households. */
+  /** Programs whose books anyone may read. Active (OPEN) programs come first. Only aggregate data is shown, never households. */
   async publicIndex() {
-    const rows = await db.program.findMany({ where: { status: { in: ['OPEN', 'ENDED'] }, mahallu: { active: true } }, orderBy: { createdAt: 'desc' }, take: 50,
-      select: { id: true, name: true, status: true, targetDate: true, mahallu: { select: { name: true, district: true } } } });
-    return rows.map(row => ({ id: row.id, name: row.name, status: row.status, targetDate: row.targetDate, mahalluName: row.mahallu.name, district: row.mahallu.district }));
+    const rows = await db.program.findMany({
+      where: { status: { in: ['OPEN', 'ENDED'] }, mahallu: { active: true } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: { id: true, name: true, status: true, targetDate: true, mahallu: { select: { name: true, district: true } } },
+    });
+    rows.sort((a, b) => (a.status === 'OPEN' ? 0 : 1) - (b.status === 'OPEN' ? 0 : 1));
+    return rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      status: row.status,
+      targetDate: row.targetDate,
+      mahalluName: row.mahallu.name,
+      district: row.mahallu.district,
+    }));
   },
 
   async publicLedger(programId: string) {
-    const program = await db.program.findFirst({ where: { id: programId, status: { in: ['OPEN', 'ENDED'] }, mahallu: { active: true } },
-      select: { id: true, name: true, status: true, targetDate: true, mahallu: { select: { name: true, district: true } } } });
+    const program = await db.program.findFirst({
+      where: { id: programId, status: { in: ['OPEN', 'ENDED'] }, mahallu: { active: true } },
+      select: {
+        id: true, name: true, status: true, targetDate: true, openedAt: true, allocatedAt: true, createdAt: true,
+        mahallu: { select: { name: true, district: true } },
+      },
+    });
     if (!program) throw notFound('Ledger');
-    const [paid, expenses, animals, handed, households] = await Promise.all([
+    const [paid, expenses, animals, issued, handed, households, firstIssue, firstHandover, lastHandover] = await Promise.all([
       db.programPayment.aggregate({ _sum: { amount: true }, _count: true, where: { status: 'CONFIRMED', booking: { programId } } }),
       db.expense.findMany({ where: { programId }, orderBy: [{ spentOn: 'desc' }, { createdAt: 'desc' }] }),
-      db.slaughterAnimal.groupBy({ by: ['status'], where: { programId }, _count: true }),
+      db.slaughterAnimal.findMany({
+        where: { programId },
+        select: { animalType: true, status: true, slaughteredAt: true, processingAt: true, packedAt: true },
+      }),
+      db.meatIssue.aggregate({ _sum: { packets: true }, where: { programId } }),
       db.distribution.aggregate({ _sum: { packets: true }, where: { programId } }),
       db.distribution.findMany({ where: { programId }, distinct: ['householdId'], select: { householdId: true } }),
+      db.meatIssue.findFirst({ where: { programId }, orderBy: { createdAt: 'asc' }, select: { createdAt: true } }),
+      db.distribution.findFirst({ where: { programId }, orderBy: { createdAt: 'asc' }, select: { createdAt: true } }),
+      db.distribution.findFirst({ where: { programId }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
     ]);
+
     const live = expenses.filter(row => !row.voidedAt);
     const spent = live.reduce((sum, row) => sum + row.amount, 0);
     const collected = paid._sum.amount ?? 0;
-    const byCategory = categories.map(category => ({ category, amount: live.filter(row => row.category === category).reduce((sum, row) => sum + row.amount, 0) }))
+    const byCategory = categories
+      .map(category => ({ category, amount: live.filter(row => row.category === category).reduce((sum, row) => sum + row.amount, 0) }))
       .filter(row => row.amount > 0);
-    const count = (status: string) => animals.find(row => row.status === status)?._count ?? 0;
+
+    const ops = summarizePublicOperations({
+      programStatus: program.status,
+      openedAt: program.openedAt,
+      allocatedAt: program.allocatedAt,
+      createdAt: program.createdAt,
+      animals,
+      packetsIssued: issued._sum.packets ?? 0,
+      packetsHandedOut: handed._sum.packets ?? 0,
+      householdsServed: households.length,
+      firstIssueAt: firstIssue?.createdAt ?? null,
+      firstHandoverAt: firstHandover?.createdAt ?? null,
+      lastHandoverAt: lastHandover?.createdAt ?? null,
+    });
+
     return {
-      program: { id: program.id, name: program.name, status: program.status, targetDate: program.targetDate, mahalluName: program.mahallu.name, district: program.mahallu.district },
-      collected, payments: paid._count, spent, balance: collected - spent, byCategory,
-      animals: { total: animals.reduce((sum, row) => sum + row._count, 0), slaughtered: count('SLAUGHTERED'), processing: count('PROCESSING'), packed: count('PACKED') },
-      meat: { packetsHandedOut: handed._sum.packets ?? 0, householdsServed: households.length },
-      expenses: expenses.map(view), generatedAt: new Date(),
+      program: {
+        id: program.id,
+        name: program.name,
+        status: program.status,
+        targetDate: program.targetDate,
+        mahalluName: program.mahallu.name,
+        district: program.mahallu.district,
+      },
+      collected,
+      payments: paid._count,
+      spent,
+      balance: collected - spent,
+      byCategory,
+      liveStage: ops.liveStage,
+      overallPercent: ops.overallPercent,
+      animals: ops.animals,
+      distribution: ops.distribution,
+      meat: { packetsHandedOut: ops.distribution.packetsHandedOut, householdsServed: ops.distribution.householdsServed },
+      updates: ops.updates,
+      expenses: expenses.map(view),
+      generatedAt: new Date(),
     };
   },
 };

@@ -1,25 +1,31 @@
 import { db } from '../../lib/db.js';
 import { ApiError, log } from '../../lib/http.js';
+import { digest } from '../../lib/secrets.js';
 import { notificationService } from '../notifications/notification.service.js';
 
 type Message = { key: string; kind: string; title: string; body: string; link?: string };
 const notFound = (what: string) => new ApiError(404, 'NOT_FOUND', what + ' not found.');
 const quiet = new Set(['OPT_IN_REQUIRED', 'USER_NOT_FOUND']);
 
-/** Puts a message in the member's inbox once, and also sends it by email and Telegram if they opted in. */
+const statusCopy: Record<string, [string, string]> = {
+  SLAUGHTERED: ['has been slaughtered', 'has been slaughtered'],
+  PROCESSING: ['is being processed', 'is now being processed (cutting and weighing)'],
+  PACKED: ['is packed', 'is packed and ready for distribution'],
+};
+
+/** Puts a message in the member's inbox once, and sends it by email and Telegram if opted in (with per-channel dedupe & retry on prior failure). */
 async function notify(userId: string, message: Message) {
   const created = await db.inboxItem.createMany({ data: { userId, key: `${message.key}.${userId}`, kind: message.kind, title: message.title,
     body: message.body, link: message.link ?? null }, skipDuplicates: true });
-  if (!created.count) return false;
-  for (const channel of ['email', 'telegram'] as const) {
+  await Promise.allSettled((['email', 'telegram'] as const).map(async channel => {
     try {
       await notificationService.send({ key: `${message.key}.${userId}.${channel}`, userId, channel, type: message.kind,
         data: { subject: message.title, message: message.body } });
     } catch (error) {
-      if (!(error instanceof ApiError && quiet.has(error.code))) log('tracking.notify_failed');
+      if (!(error instanceof ApiError && quiet.has(error.code))) log('tracking.notify_failed', { channel });
     }
-  }
-  return true;
+  }));
+  return created.count > 0;
 }
 
 async function holdersOf(animalId: string) {
@@ -29,15 +35,61 @@ async function holdersOf(animalId: string) {
 
 export const trackingService = {
   /**
+   * Called after shares are allocated to animals (bulk or manual edit). Tells each linked household their assigned animal code(s).
+   */
+  async onAllocated(programId: string, bookingId?: string) {
+    try {
+      const rows = await db.shareAllocation.findMany({
+        where: { animal: { programId }, ...(bookingId ? { bookingId } : {}) },
+        select: {
+          shares: true,
+          animal: { select: { id: true, code: true } },
+          booking: { select: { household: { select: { userId: true } } } },
+        },
+      });
+      const byUser = new Map<string, { ids: string[]; codes: string[] }>();
+      for (const row of rows) {
+        const userId = row.booking.household.userId;
+        if (!userId) continue;
+        const entry = byUser.get(userId) ?? { ids: [], codes: [] };
+        if (!entry.ids.includes(row.animal.id)) {
+          entry.ids.push(row.animal.id);
+          entry.codes.push(row.animal.code);
+        }
+        byUser.set(userId, entry);
+      }
+      for (const [userId, entry] of byUser) {
+        entry.ids.sort();
+        entry.codes.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        const list = entry.codes.join(', ');
+        const tag = digest(entry.ids.join(',')).slice(0, 16);
+        const plural = entry.codes.length > 1;
+        await notify(userId, {
+          key: `allocated.${programId}.${tag}`,
+          kind: 'animal.allocated',
+          title: plural ? `Animals allocated: ${list}` : `Animal allocated: ${list}`,
+          body: plural
+            ? `Your Udhiyya shares have been allocated to ${list}.`
+            : `Your Udhiyya share has been allocated to ${list}.`,
+          link: '/app/tracking',
+        });
+      }
+    } catch {
+      log('tracking.allocated_hook_failed');
+    }
+  },
+
+  /**
    * Called after an animal's status moves forward. When one animal is slaughtered the next animal in the draw order is "next",
-   * and its households are told to be ready. Households are also told when their own animal is slaughtered and packed.
+   * and its households are told to be ready. Households are also told when their own animal is slaughtered, being processed, and packed.
    */
   async onStatusChange(animalId: string, to: string) {
     try {
       const animal = await db.slaughterAnimal.findUnique({ where: { id: animalId } });
       if (!animal) return;
-      if (to === 'SLAUGHTERED' || to === 'PACKED') {
-        const [short, long] = to === 'PACKED' ? ['is packed', 'is packed and ready for distribution'] : ['has been slaughtered', 'has been slaughtered'];
+      const copy = statusCopy[to];
+      if (copy) {
+        const [short, long] = copy;
         for (const userId of await holdersOf(animalId)) {
           await notify(userId, { key: `status.${animalId}.${to}`, kind: 'animal.status', title: `${animal.code} ${short}`,
             body: `Your animal ${animal.code} ${long}.`, link: '/app/tracking' });

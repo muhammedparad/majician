@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
+import { BrandLogo } from '../../components/BrandLogo';
 import { useAuth } from '../../contexts/auth';
 import { useApp } from '../lib/app-context';
 import { animalLabel, dateText, inr, monthlyEstimate, payModeLabel, shareText, splitName, type AnimalType, type MyProgram, type PayMode } from '../lib/programs';
 import { Stepper } from '../ui/booking';
 import { ErrorNote, Loading, useAction, useFetch } from '../ui/kit';
+import { Spinner } from '../../features/motion/primitives';
 import { HouseholdLink } from './Join';
 
 export const skipKey = 'udhiyya-onboarding-skipped';
@@ -55,6 +57,11 @@ export function Welcome() {
   });
 
   return <div className="am-welcome">
+    <div className="am-welcome-brand">
+      <Link className="logo" to="/" aria-label="Udhiyya home">
+        <BrandLogo className="am-brand-logo" decorative />
+      </Link>
+    </div>
     <header className="am-welcome-head">
       <div><div className="eyebrow"><span className="dot" />WELCOME{user ? ', ' + user.name.split(' ')[0].toUpperCase() : ''}</div>
         <h1 style={{ marginTop: 10 }}>Let’s set up your <span className="serif">Udhiyya.</span></h1></div>
@@ -118,7 +125,9 @@ export function Welcome() {
 
     {step !== 'done' && <footer className="am-welcome-actions">
       <button type="button" className="pillbtn ghost" disabled={at === 0 || busy} onClick={() => go(at - 1)}>Back</button>
-      {step === 'shares' ? <button type="button" className="pillbtn" disabled={busy || !program || !chosen || !payMode} onClick={() => void confirm()}>{busy ? 'Booking…' : 'Confirm booking'}</button> :
+      {step === 'shares' ? <button type="button" className="pillbtn" disabled={busy || !program || !chosen || !payMode} onClick={() => void confirm()}>
+        <span className="am-btn-content">{busy && <Spinner light />}<span>{busy ? 'Booking…' : 'Confirm booking'}</span></span>
+      </button> :
         step === 'household' ? null : <button type="button" className="pillbtn" disabled={!canContinue} onClick={() => go(at + 1)}>Continue</button>}
     </footer>}
   </div>;

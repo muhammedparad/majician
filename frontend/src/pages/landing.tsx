@@ -1,5 +1,6 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { BrandLogo } from '../components/BrandLogo';
 import { useAuth } from '../contexts/auth';
 import { Bars, FloatCard, Heading, Icon, Meter, Phone, Row, Tag, type IconName } from '../features/landing/parts';
 import { useReveal } from '../features/landing/reveal';
@@ -32,13 +33,74 @@ const faqs = [
 
 function Nav() {
   const { user } = useAuth();
-  return <header className="lp-nav"><nav aria-label="Main navigation">
-    <Link to="/" className="lp-brand"><span className="lp-logo">U</span>Udhiyya Saver</Link>
+  const [menuOpen, setMenuOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onOutside = (event: MouseEvent) => {
+      if (!headerRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onOutside);
+    document.addEventListener('keydown', onEscape);
+    return () => {
+      document.removeEventListener('mousedown', onOutside);
+      document.removeEventListener('keydown', onEscape);
+    };
+  }, [menuOpen]);
+
+  const close = () => setMenuOpen(false);
+
+  return <header className="lp-nav" ref={headerRef}><nav aria-label="Main navigation">
+    <Link to="/" className="lp-brand" onClick={close} aria-label="Udhiyya home">
+      <BrandLogo className="lp-brand-logo" decorative />
+    </Link>
     <div className="lp-links"><a href="#how">How it works</a><a href="#plans">Plans</a><a href="#distribution">Distribution</a><Link to="/transparency">Public ledger</Link><a href="#faq">FAQ</a></div>
     <div className="lp-nav-cta">{user ? <Link className="lp-btn lp-btn-green" to="/app">Open Udhiyya</Link> : <>
       <Link className="lp-login" to="/login">Log in</Link>
       <Link className="lp-btn lp-btn-green" to="/register">Get Started</Link></>}</div>
-  </nav></header>;
+    <button
+      type="button"
+      className="lp-menu-btn"
+      aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+      aria-expanded={menuOpen}
+      aria-controls="lp-mobile-menu"
+      onClick={() => setMenuOpen(open => !open)}
+    >
+      {menuOpen ? (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      ) : (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+          <line x1="4" y1="7" x2="20" y2="7" />
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <line x1="4" y1="17" x2="20" y2="17" />
+        </svg>
+      )}
+    </button>
+  </nav>
+  {menuOpen && <div className="lp-mobile-menu" id="lp-mobile-menu" role="region" aria-label="Mobile navigation">
+    <a href="#how" onClick={close}>How it works</a>
+    <a href="#plans" onClick={close}>Plans</a>
+    <a href="#distribution" onClick={close}>Distribution</a>
+    <Link to="/transparency" onClick={close}>Public ledger</Link>
+    <a href="#faq" onClick={close}>FAQ</a>
+    <div className="lp-mobile-menu-cta">
+      {user ? (
+        <Link className="lp-btn lp-btn-green" to="/app" onClick={close}>Open Udhiyya</Link>
+      ) : (
+        <>
+          <Link className="lp-btn lp-btn-outline" to="/login" onClick={close}>Log in</Link>
+          <Link className="lp-btn lp-btn-green" to="/register" onClick={close}>Get Started</Link>
+        </>
+      )}
+    </div>
+  </div>}
+  </header>;
 }
 
 function Hero() {
@@ -46,9 +108,9 @@ function Hero() {
   return <section className="lp-hero">
     <Nav />
     <div className="lp-hero-copy">
-      <Tag>Mahal-run Udhiyya savings</Tag>
-      <Heading as="h1" className="lp-h1" bold="Udhiyya," italic="Made Easier, One Month at a Time." />
-      <p>Udhiyya Saver lets families save for their share in small monthly installments, and helps your mahal buy animals and distribute the meat with less effort and more trust.</p>
+      <Tag leading={<BrandLogo variant="mark" className="lp-tag-mark" decorative />}>Haven't You Started Saving for Udhiyya Yet?</Tag>
+      <Heading as="h1" className="lp-h1" bold="Your Udhiyya," italic="made easier — one month at a time." />
+      <p>Plan ahead, contribute monthly, manage your team and keep every payment organized in one place.</p>
       <div className="lp-actions">
         <Link className="lp-btn lp-btn-white" to={user ? '/app' : '/register'}>Get Started</Link>
         <a className="lp-btn lp-btn-ghost" href="#how">See how it works</a>
@@ -59,6 +121,7 @@ function Hero() {
       <FloatCard className="lp-float-l"><span className="lp-dot lp-dot-mid"><Icon name="check" size={16} /></span>
         <span><b>Installment received</b><small>Cash · Mahal collector</small></span><strong>+₹500</strong></FloatCard>
       <Phone className="lp-hero-phone">
+        <div className="lp-phone-brand"><BrandLogo className="lp-phone-logo" decorative /></div>
         <div className="lp-greet"><span className="lp-avatar">FA</span><span><small>Assalamu alaikum</small><b>Fathima</b></span></div>
         <div className="lp-balance"><small>Saved for Udhiyya</small><b>₹3,000</b><Meter percent={50} label="50 percent saved" /><small>of ₹6,000 · goat share</small></div>
         <Row icon="check" title="Installment" sub="Cash · Today" value="+₹500" tone="mid" />
@@ -207,17 +270,21 @@ function Footer() {
   return <footer className="lp-footer">
     <div className="lp-footer-card" data-reveal>
       <div className="lp-footer-top">
-        <div><b className="lp-footer-title">Udhiyya management, made simple.</b>
-          <p>Udhiyya Saver connects families, collectors and your mahal committee through one transparent platform.</p></div>
+        <div>
+          <Link to="/" className="lp-footer-brand" aria-label="Udhiyya home">
+            <BrandLogo className="lp-footer-logo" decorative />
+          </Link>
+          <b className="lp-footer-title">Udhiyya management, made simple.</b>
+          <p>Udhiyya connects families, collectors and your mahal committee through one transparent platform.</p>
+        </div>
         <nav aria-label="Footer">
           <div><h3>Product</h3><a href="#how">How it works</a><a href="#plans">Plans</a><a href="#distribution">Distribution</a><Link to="/transparency">Public ledger</Link></div>
           <div><h3>Account</h3><Link to="/register">Create account</Link><Link to="/login">Sign in</Link><Link to="/app">My Udhiyya</Link></div>
           <div><h3>Help</h3><a href="#faq">FAQ</a><Link to="/profile">Notifications</Link></div>
         </nav>
       </div>
-      <div className="lp-footer-bottom"><span>© 2026 Udhiyya Saver. Built at the buildathon.</span></div>
+      <div className="lp-footer-bottom"><span>© 2026 Udhiyya. Built at the buildathon.</span></div>
     </div>
-    <div className="lp-wordmark" aria-hidden="true">UDHIYYA</div>
   </footer>;
 }
 

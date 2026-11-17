@@ -74,3 +74,21 @@ export function useApp() {
 
 export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase()).join('') || 'U';
 export const greeting = () => { const hour = new Date().getHours(); return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'; };
+export const shortMahallu = (name?: string | null) => {
+  const clean = (name ?? '').replace(/\s*\([^)]*\)\s*/g, '').trim();
+  return clean || 'Kannur Mahallu';
+};
+export function useWide() {
+  const [wide, setWide] = useState(() => window.innerWidth >= 1024);
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 1024px)');
+    const update = () => setWide(window.innerWidth >= 1024);
+    query.addEventListener('change', update);
+    window.addEventListener('resize', update);
+    return () => {
+      query.removeEventListener('change', update);
+      window.removeEventListener('resize', update);
+    };
+  }, []);
+  return wide;
+}

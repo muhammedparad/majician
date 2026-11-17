@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
+import { BrandLogo } from '../../components/BrandLogo';
 import { useAuth } from '../../contexts/auth';
-import { initials, useApp } from '../lib/app-context';
+import { initials, shortMahallu, useApp } from '../lib/app-context';
 import { 
   IconX, 
   IconHome, 
@@ -9,8 +10,6 @@ import {
   IconHand, 
   IconDoc, 
   IconChart, 
-  IconCalc, 
-  IconBook, 
   IconBell, 
   IconShield,
   IconUsers,
@@ -25,8 +24,7 @@ interface TogglableSidebarProps {
 
 export const TogglableSidebar: React.FC<TogglableSidebarProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const { isSuper, adminOf, activeMahallu, volunteer, unread } = useApp();
-  const navigate = useNavigate();
+  const { isSuper, adminOf, activeMahallu, volunteer, ctx, unread } = useApp();
 
   // Close on Escape key
   useEffect(() => {
@@ -41,7 +39,7 @@ export const TogglableSidebar: React.FC<TogglableSidebarProps> = ({ isOpen, onCl
 
   if (!user) return null;
 
-  const place = (activeMahallu?.mahalluName ?? volunteer?.mahalluName ?? 'Kannur Mahallu').replace(/ mahallu$/i, '');
+  const place = shortMahallu(activeMahallu?.mahalluName ?? volunteer?.mahalluName ?? ctx?.households[0]?.mahalluName);
 
   const navItems = [
     { to: '/app', label: 'Dashboard', icon: <IconHome />, end: true },
@@ -84,10 +82,9 @@ export const TogglableSidebar: React.FC<TogglableSidebarProps> = ({ isOpen, onCl
         <div className="dside-body" id="d-side-body">
           {/* Drawer Header */}
           <div className="dside-head">
-            <span className="logo">
-              <span className="mark">U</span>
-              UDHIYYA SAVER
-            </span>
+            <Link className="logo" to="/app" onClick={onClose} aria-label="Udhiyya dashboard home">
+              <BrandLogo className="am-brand-logo" decorative />
+            </Link>
             <button
               type="button"
               className="iconbtn"
@@ -106,7 +103,7 @@ export const TogglableSidebar: React.FC<TogglableSidebarProps> = ({ isOpen, onCl
             </span>
             <div className="grow">
               <div className="n">{user.name}</div>
-              <div className="m">{roleLabel(isSuper, adminOf.length > 0, !!volunteer)} • {place} Mahallu</div>
+              <div className="m">{roleLabel(isSuper, adminOf.length > 0, !!volunteer)} • {place}</div>
             </div>
             <span className="tag">Verified</span>
           </div>

@@ -11,9 +11,6 @@
 .am .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .am .stack { display: grid; gap: 22px; }
 .am .row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.am .pillbtn.ghost { background: #fff; color: var(--green); box-shadow: inset 0 0 0 1.5px var(--line); }
-.am .pillbtn.ghost:hover { background: var(--bg2); }
-.am .pillbtn.sm { min-height: 42px; padding: 0 18px; font-size: 14px; }
 .am .pillbtn.danger { background: #fff; color: var(--coral-ink); box-shadow: inset 0 0 0 1.5px #f3c7bf; }
 .am .pillbtn:disabled, .am .chipbtn:disabled { opacity: .55; cursor: not-allowed; }
 .am .tx-wrap { overflow-x: auto; margin: 0 -8px; padding: 0 8px; }
@@ -115,6 +112,7 @@
 /* First-login slides */
 .am-focus { min-height: 100vh; display: grid; align-items: start; }
 .am-welcome { width: min(760px, 100%); margin: 0 auto; padding: 28px 18px 40px; display: grid; gap: 22px; }
+.am-welcome-brand { display: flex; align-items: center; }
 .am-welcome-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
 .am-welcome-head h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 800; }
 .am-dots { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; }
