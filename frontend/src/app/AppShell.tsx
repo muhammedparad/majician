@@ -3,9 +3,10 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { ChatWidget } from '../features/chat/widget';
 import { useAuth } from '../contexts/auth';
 import { greeting, initials, useApp } from './lib/app-context';
-import { Sidebar, roleLabel, type Group } from './Sidebar';
+import { roleLabel, type Group } from './Sidebar';
 import { IconBell, IconCard, IconChart, IconClock, IconDoc, IconHand, IconHome, IconMenu, IconShield, IconUsers, IconX } from './ui/Icons';
 import { IconAnimal } from './ui/more-icons';
+import { TogglableSidebar } from './ui/TogglableSidebar';
 import './app.css';
 import './app-extra.css';
 import './app-layout.css';
@@ -13,8 +14,6 @@ import './app-pages.css';
 import './app-pages2.css';
 import './app-volunteer.css';
 import './app-sidebar.css';
-
-const storeKey = 'udhiyya-sidebar';
 
 function useWide() {
   const query = '(min-width: 1024px)';
@@ -79,29 +78,124 @@ function UserMenu({ align = 'right' }: { align?: 'left' | 'right' }) {
 
 function Desktop({ groups }: { groups: Group[] }) {
   const { user } = useAuth();
-  const { unread } = useApp();
+  const { unread, isSuper, adminOf, volunteer } = useApp();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(() => { try { return localStorage.getItem(storeKey) !== 'closed'; } catch { return true; } });
-  const toggle = useCallback(() => setOpen(value => {
-    try { localStorage.setItem(storeKey, value ? 'closed' : 'open'); } catch { /* the choice just is not remembered */ }
-    return !value;
-  }), []);
+  const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   if (!user) return null;
-  return <div className="shell-desktop" id="shell-desktop">
-    <div className="marquee" aria-hidden="true"><span className="track">{'SAVE · PAY · SHARE · DISTRIBUTE · '.repeat(8)}</span></div>
-    <header className="dnav">
-      <button type="button" className="iconbtn" aria-label={open ? 'Hide menu' : 'Show menu'} aria-expanded={open} aria-controls="am-sidebar" onClick={toggle}>{open ? <IconX /> : <IconMenu />}</button>
-      {!open && <Link className="logo" to="/app" aria-label="Udhiyya Saver dashboard"><span className="mark">U</span>UDHIYYA SAVER</Link>}
-      <span className="am-spacer" />
-      <button type="button" className="iconbtn" aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'} id="d-bell"
-        onClick={() => navigate('/app/notifications')}><IconBell />{unread > 0 && <span className="badge">{unread}</span>}</button>
-      <UserMenu />
-    </header>
-    <div className={'am-grid' + (open ? '' : ' closed')}>
-      <aside id="am-sidebar" className="am-sbwrap" aria-label="Menu" aria-hidden={!open} inert={!open}><Sidebar groups={groups} /></aside>
-      <main id="d-main" tabIndex={-1} aria-label="Content"><Outlet /></main>
+
+  const siteNavLinks = [
+    { to: '/app', label: 'Donate' },
+    ...(adminOf.length > 0 ? [
+      { to: '/app/members', label: 'Members' },
+      { to: '/app/manage/programs', label: 'Programs' },
+      { to: '/app/volunteers', label: 'Volunteers' },
+      { to: '/app/manage/ledger', label: 'Ledger' }
+    ] : []),
+    ...(isSuper ? [
+      { to: '/app/mahallus', label: 'Mahallus' }
+    ] : []),
+    ...(volunteer ? [
+      { to: '/app/volunteer/animals', label: 'Animals' },
+      { to: '/app/volunteer/distribute', label: 'Distribute' },
+      { to: '/app/volunteer/activity', label: 'Activity' }
+    ] : []),
+    ...(!adminOf.length && !volunteer && !isSuper ? [
+      { to: '/app/tracking', label: 'Assistance' },
+      { to: '/app/payments', label: 'Calculator' }
+    ] : []),
+    { to: '/app/profile', label: 'About' },
+    { to: '/transparency', label: 'Resources' }
+  ];
+
+  return (
+    <div className="shell-desktop" id="shell-desktop">
+      {/* Top Subtle Marquee */}
+      <div className="marquee" aria-hidden="true">
+        <span className="track">
+          {'GIVE · VERIFY · DISTRIBUTE · TRACK · SAVE · PAY · SHARE · '.repeat(8)}
+        </span>
+      </div>
+
+      {/* Floating Header */}
+      <header className="dnav">
+        <button
+          type="button"
+          className="iconbtn"
+          id="d-menu-btn"
+          aria-label="Open menu"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <IconMenu />
+        </button>
+
+        <Link className="logo" to="/app" aria-label="Dashboard home">
+          <span className="mark">A</span>
+          AMANAH
+        </Link>
+
+        {/* Site Nav */}
+        <nav aria-label="Site" id="d-nav">
+          {siteNavLinks.slice(0, 5).map((item) => {
+            const isActive = location.pathname === item.to || (item.to !== '/app' && location.pathname.startsWith(item.to));
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={isActive ? 'on' : ''}
+              >
+                {item.label}
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        {/* Notifications Bell */}
+        <button
+          type="button"
+          className="iconbtn"
+          aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
+          id="d-bell"
+          onClick={() => navigate('/app/notifications')}
+        >
+          <IconBell />
+          {unread > 0 && <span className="badge">{unread}</span>}
+        </button>
+
+        {/* User Button / Log in */}
+        <UserMenu />
+
+        {/* Action Button */}
+        <button
+          type="button"
+          className="pillbtn sm"
+          style={{ minHeight: 44 }}
+          onClick={() => navigate(adminOf.length ? '/app/members' : '/app')}
+        >
+          Get Started
+        </button>
+      </header>
+
+      {/* Main Content Wrap */}
+      <div className="dwrap">
+        <main id="d-main" tabIndex={-1} aria-label="Dashboard content">
+          <Outlet />
+        </main>
+      </div>
+
+      {/* Footer */}
+      <footer className="foot" style={{ maxWidth: 1360, margin: '0 auto', padding: '0 20px 40px', color: 'var(--muted)', fontSize: 13.5 }}>
+        <div className="divider" style={{ marginBottom: 18 }}></div>
+        <p>
+          <strong style={{ color: 'var(--ink2)' }}>AMANAH</strong> — Zakat, Made <span className="serif" style={{ fontSize: 15 }}>Clearer</span> by Design. Verified Zakat management for {user.name} · Kannur Mahallu, Kerala. Demo experience: figures are sample data stored only in this browser.
+        </p>
+      </footer>
+
+      {/* Slide-out Sidebar Drawer */}
+      <TogglableSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
     </div>
-  </div>;
+  );
 }
 
 function Mobile({ groups }: { groups: Group[] }) {
@@ -133,11 +227,7 @@ function Mobile({ groups }: { groups: Group[] }) {
       {tabs.map(item => <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => (isActive ? 'on' : '')}>{item.icon}<span>{item.label}</span></NavLink>)}
       {items.length > 4 && <button type="button" onClick={() => setDrawer(true)}><IconMenu /><span>More</span></button>}
     </nav>
-    <div className={'am-drawer-overlay' + (drawer ? ' open' : '')} onClick={() => setDrawer(false)} aria-hidden="true" />
-    <aside className={'am-drawer' + (drawer ? ' open' : '')} aria-label="Menu" aria-hidden={!drawer} inert={!drawer}>
-      <button type="button" className="iconbtn am-drawer-close" aria-label="Close menu" onClick={() => setDrawer(false)}><IconX /></button>
-      <Sidebar groups={groups} onNavigate={() => setDrawer(false)} />
-    </aside>
+    <TogglableSidebar isOpen={drawer} onClose={() => setDrawer(false)} />
   </div>;
 }
 

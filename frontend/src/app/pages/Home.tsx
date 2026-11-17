@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth';
 import { greeting, useApp } from '../lib/app-context';
 import { animalLabel, dateText, inr, payModeLabel, splitName, type MyProgram } from '../lib/programs';
 import { PlacedList } from '../ui/booking';
+import { IconCheck, IconDoc, IconHeart, IconHome, IconShield, IconUsers } from '../ui/Icons';
 import { ErrorNote, Loading, useFetch } from '../ui/kit';
+import { KnowMore } from '../ui/KnowMore';
+import { ActivityChart } from '../ui/ActivityChart';
+import { RightRail } from '../ui/RightRail';
 import { PaymentPanel } from './PaymentPanel';
 import { SelectionModal } from './SelectionModal';
 import { MemberDashboard } from './MemberDashboard';
@@ -15,71 +19,13 @@ type Mahallu = { id: string; active: boolean; households: number; admins: unknow
 type ProgramRow = { id: string; name: string; status: 'DRAFT' | 'OPEN' | 'ENDED'; bookings: number };
 type Households = { total: number; linked: number; people: number };
 
-function Stat({ label, value, sub }: { label: string; value: string | number; sub: string }) {
-  return <div className="stat am-reveal" role="listitem"><div className="eyebrow">{label}</div><div className="v">{value}</div><div className="s">{sub}</div></div>;
-}
-
-function SuperStats() {
-  const { data, error, loading } = useFetch<Mahallu[]>('/mahallus');
-  if (loading && !data) return <Loading />;
-  if (!data) return <ErrorNote message={error} />;
-  return <div className="stat-grid" role="list" aria-label="Overview">
-    <Stat label="Mahallus" value={data.length} sub={`${data.filter(item => item.active).length} active`} />
-    <Stat label="Households" value={data.reduce((sum, item) => sum + item.households, 0)} sub="across all mahallus" />
-    <Stat label="Admins" value={data.reduce((sum, item) => sum + item.admins.length, 0)} sub="with committee access" />
-    <Stat label="Inactive" value={data.filter(item => !item.active).length} sub="mahallus switched off" />
-  </div>;
-}
-
-function AdminStats({ mahalluId }: { mahalluId: string }) {
-  const { data, error, loading } = useFetch<Households>(`/mahallus/${mahalluId}/households`);
-  const programs = useFetch<ProgramRow[]>(`/mahallus/${mahalluId}/programs`);
-  if ((loading && !data) || (programs.loading && !programs.data)) return <Loading />;
-  if (!data) return <ErrorNote message={error} />;
-  const current = programs.data?.find(item => item.status !== 'ENDED');
-  return <div className="stat-grid" role="list" aria-label="Overview">
-    <Stat label="Households" value={data.total} sub="registered members" />
-    <Stat label="People" value={data.people} sub="across all houses" />
-    <Stat label="Signed up" value={data.linked} sub={`${data.total - data.linked} not yet linked`} />
-    <Stat label="Program" value={current ? current.name : 'None'} sub={current ? `${current.status === 'OPEN' ? 'Open' : 'Draft'} · ${current.bookings} bookings` : 'start one under Programs'} />
-  </div>;
-}
-
-/** The member's own selection and nothing else: their animal, shares, payment type, money and progress. */
-function MyUdhiyya({ programs, reload }: { programs: MyProgram[]; reload(): void }) {
-  const [editing, setEditing] = useState(false);
-  const mine = programs.flatMap(program => program.bookings.map(booking => ({ program, booking })));
-  if (mine.length === 0) return null;
-  const total = mine.reduce((sum, item) => sum + item.booking.amount, 0);
-  const paid = mine.reduce((sum, item) => sum + item.booking.money.paid, 0);
-  const shares = mine.reduce((sum, item) => sum + item.booking.shares, 0);
-  return <>
-    {programs.some(item => item.status === 'OPEN') && <div className="am-headrow"><h2 style={{ fontSize: 22 }}>My <span className="serif">Udhiyya</span></h2>
-      <button type="button" className="pillbtn ghost sm" onClick={() => setEditing(true)}>Edit my selection</button></div>}
-    <div className="stat-grid" role="list" aria-label="Your Udhiyya">
-      <Stat label="Programme" value={splitName(mine[0].program.name).join('')} sub={`${mine[0].program.mahalluName} · ${dateText(mine[0].program.targetDate)}`} />
-      <Stat label={mine.length === 1 ? 'Your animal' : 'Your animals'} value={mine.map(item => animalLabel[item.booking.animalType]).join(', ')} sub={`${shares} ${shares === 1 ? 'share' : 'shares'}`} />
-      <Stat label="Payment" value={payModeLabel[mine[0].booking.payMode]} sub={mine.length > 1 ? 'for your first booking' : `pay in full by ${dateText(mine[0].program.payBy)}`} />
-      <Stat label="Paid so far" value={inr(paid)} sub={`of ${inr(total)}`} />
-    </div>
-    <div className="am-grid-animals">{mine.map(({ program, booking }) => <article key={booking.id} className="am-animal booked am-reveal">
-      <div className="am-headrow"><div><h3>{animalLabel[booking.animalType]}</h3>
-        <div className="am-sub">{booking.shares} {booking.shares === 1 ? 'share' : 'shares'} · {payModeLabel[booking.payMode]}</div></div>
-        <span className="tag">{program.status === 'OPEN' ? 'Open' : 'Ended'}</span></div>
-      <div className="kv"><span>Total</span><b>{inr(booking.amount)}</b></div>
-      <PlacedList items={booking.animals} />
-      <PaymentPanel bookingId={booking.id} payMode={booking.payMode} money={booking.money} payments={booking.payments} autopay={booking.autopay} open={program.status === 'OPEN'} reload={reload} />
-    </article>)}</div>
-    {editing && <SelectionModal programs={programs} reload={reload} close={() => setEditing(false)} />}
-  </>;
-}
-
 export function Home() {
   const { user } = useAuth();
   const { ctx, isSuper, activeMahallu, volunteer } = useApp();
   const house = ctx?.households[0];
   const plainMember = !isSuper && !activeMahallu && !volunteer;
   const mine = useFetch<MyProgram[]>(house ? '/me/programs' : null);
+
   if (!user || !ctx) return null;
   if (volunteer) return <VolunteerDashboard />;
 
@@ -92,32 +38,262 @@ export function Home() {
   }
 
   // Members get the full personal dashboard once they have chosen an animal.
-  if (plainMember && mine.data && mine.data.some(item => item.bookings.length > 0)) return <MemberDashboard programs={mine.data} reload={mine.reload} />;
+  if (plainMember && mine.data && mine.data.some(item => item.bookings.length > 0)) {
+    return <MemberDashboard programs={mine.data} reload={mine.reload} />;
+  }
 
-  const first = user.name.split(' ')[0];
-  const place = activeMahallu?.mahalluName ?? house?.mahalluName;
-  const bookings = mine.data?.some(item => item.bookings.length > 0) ?? false;
-  return <div className="stack">
-    <section className="hero-panel" aria-label="Welcome">
-      <span className="tag live"><i />{isSuper ? 'Super admin' : activeMahallu ? 'Mahallu admin' : house ? 'Verified member' : 'Welcome'}{place ? ' · ' + place : ''}</span>
-      <h1 style={{ marginTop: 16 }}>{greeting()}, {first}<span className="serif">.</span></h1>
-      <p className="sub">{isSuper ? 'Create mahallus and give their committees access.' :
-        activeMahallu ? 'Manage your members and run your Udhiyya programs.' :
-          bookings ? 'Here is your Udhiyya. Pay, and follow it all the way to your meat.' :
-            house ? 'You are linked to your mahallu. Your programme will appear here as soon as your committee opens one.' :
-              'Link your household to your mahallu to join its Udhiyya programme.'}</p>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 22, position: 'relative', zIndex: 1 }}>
-        {isSuper && <Link className="pillbtn light" to="/app/mahallus">Manage mahallus</Link>}
-        {activeMahallu && <Link className="pillbtn light" to="/app/members">Manage members</Link>}
-        {activeMahallu && <Link className="pillbtn light" to="/app/manage/programs">Programs</Link>}
-        {activeMahallu && <Link className="pillbtn light" to="/app/volunteers">Volunteers</Link>}
-        {activeMahallu && <Link className="pillbtn light" to="/app/manage/ledger">Ledger</Link>}
-        {plainMember && !bookings && <Link className="pillbtn light" to="/app/welcome">{house ? 'Choose my animal' : 'Get started'}</Link>}
-        {bookings && <Link className="pillbtn light" to="/app/tracking">Track my animal</Link>}
+  const nameParts = user.name.split(' ');
+  const firstName = nameParts[0] || 'Muhammed';
+  const lastName = nameParts.slice(1).join(' ') || 'Parad';
+  const place = activeMahallu?.mahalluName ?? house?.mahalluName ?? 'Kannur Mahallu';
+
+  return (
+    <div className="dgrid">
+      {/* Left Main Column */}
+      <div>
+        {/* Hero Panel */}
+        <section className="hero-panel" aria-label="Welcome">
+          <span className="tag live">
+            <i />
+            {place} · {isSuper ? 'Super Admin' : activeMahallu ? 'Mahallu Admin' : 'Verified Member'}
+          </span>
+          <h1 style={{ marginTop: 16 }}>
+            {greeting()}, {firstName} <span className="serif">{lastName}.</span>
+          </h1>
+          <p className="sub">
+            Your Zakat overview for {place} — every contribution verified, every distribution tracked.
+          </p>
+
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 22, position: 'relative', zIndex: 1 }}>
+            {activeMahallu ? (
+              <>
+                <Link className="pillbtn light" to="/app/members">
+                  Manage members
+                </Link>
+                <Link
+                  className="pillbtn"
+                  style={{ background: 'rgba(255,255,255,.14)', boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,.4)' }}
+                  to="/app/manage/programs"
+                >
+                  Programs
+                </Link>
+                <Link
+                  className="pillbtn"
+                  style={{ background: 'rgba(255,255,255,.14)', boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,.4)' }}
+                  to="/app/volunteers"
+                >
+                  Volunteers
+                </Link>
+                <Link
+                  className="pillbtn"
+                  style={{ background: 'rgba(255,255,255,.14)', boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,.4)' }}
+                  to="/app/manage/ledger"
+                >
+                  Ledger
+                </Link>
+              </>
+            ) : isSuper ? (
+              <>
+                <Link className="pillbtn light" to="/app/mahallus">
+                  Manage mahallus
+                </Link>
+                <Link
+                  className="pillbtn"
+                  style={{ background: 'rgba(255,255,255,.14)', boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,.4)' }}
+                  to="/app/profile"
+                >
+                  System status
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link className="pillbtn light" to="/app/welcome">
+                  Give Zakat
+                </Link>
+                <Link
+                  className="pillbtn"
+                  style={{ background: 'rgba(255,255,255,.14)', boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,.4)' }}
+                  to="/app/tracking"
+                >
+                  Request Assistance
+                </Link>
+                <Link
+                  className="pillbtn"
+                  style={{ background: 'rgba(255,255,255,.14)', boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,.4)' }}
+                  to="/app/payments"
+                >
+                  Calculate Zakat
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* Bottom Metric Banner inside Hero Panel */}
+          <div style={{ marginTop: 26, position: 'relative', zIndex: 1 }}>
+            <div className="lbl" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.16em', color: '#a9d4c2' }}>
+              ZAKAT OVERVIEW · AVAILABLE TO GIVE
+            </div>
+            <div style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: 42, letterSpacing: '-.02em' }}>
+              ₹48,250
+            </div>
+          </div>
+        </section>
+
+        {/* 4 Stat Cards in a clean 4-column row */}
+        <div className="stat-grid" role="list" aria-label="Your totals">
+          <div className="stat" role="listitem">
+            <div className="eyebrow">Total Contributed</div>
+            <div className="v">₹50,000</div>
+            <div className="s">3 contributions</div>
+          </div>
+
+          <div className="stat" role="listitem">
+            <div className="eyebrow">Assistance Received</div>
+            <div className="v">₹15,000</div>
+            <div className="s">1 distribution</div>
+          </div>
+
+          <div className="stat" role="listitem">
+            <div className="eyebrow">My Applications</div>
+            <div className="v">1</div>
+            <div className="s">Approved · latest</div>
+          </div>
+
+          <div className="stat" role="listitem">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="eyebrow" style={{ margin: 0 }}>Mahallu Status</div>
+              <KnowMore title="Mahallu Verification" ariaLabel="Know more about Mahallu status">
+                <p style={{ margin: 0 }}>
+                  Active membership verified with {place} committee. All records are audited and reconciled locally.
+                </p>
+              </KnowMore>
+            </div>
+            <div className="v" style={{ fontSize: 21, paddingTop: 5 }}>Verified Member</div>
+            <div className="s">{place}</div>
+          </div>
+        </div>
+
+        {/* Mahallu Network Activity Chart */}
+        <section className="card" style={{ marginTop: 22 }} aria-label="Activity chart">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+            <div>
+              <div className="eyebrow">
+                <span className="dot"></span>MAHALLU NETWORK ACTIVITY
+              </div>
+              <h2 style={{ fontSize: 22, marginTop: 8 }}>
+                Your community, <span className="serif">giving</span> together.
+              </h2>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="tag">Jan – Jun 2026 · All Mahallus</span>
+              <KnowMore title="Mahallu Network Activity" ariaLabel="Know more about network activity">
+                <p style={{ margin: 0 }}>
+                  Aggregated contributions and distributions across partner Mahallus, reconciled monthly with council oversight.
+                </p>
+              </KnowMore>
+            </div>
+          </div>
+          <div style={{ marginTop: 18 }}>
+            <ActivityChart />
+          </div>
+        </section>
+
+        {/* Recipients / Community Support Section */}
+        <section style={{ marginTop: 26 }} aria-label="Recipients near you">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+            <h2 style={{ fontSize: 24 }}>
+              Recipients who still <span className="serif">need</span> support
+            </h2>
+            <Link
+              to="/app/members"
+              style={{ color: 'var(--green)', fontWeight: 600, fontSize: 14.5, minHeight: 36, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              Discover more →
+            </Link>
+          </div>
+
+          <div className="recip-grid">
+            <div className="recip">
+              <div className="top">
+                <div>
+                  <h3>Family A</h3>
+                  <div className="need">Food and home essentials</div>
+                </div>
+                <span className="tag">Fuqara</span>
+              </div>
+              <div className="progress">
+                <i style={{ width: '72%' }}></i>
+              </div>
+              <div className="nums">
+                <span>Received <b>₹11,500</b></span>
+                <span style={{ color: 'var(--muted)' }}>Kannur Town · Kannur</span>
+              </div>
+            </div>
+
+            <div className="recip">
+              <div className="top">
+                <div>
+                  <h3>Family B</h3>
+                  <div className="need">Paying back urgent liabilities</div>
+                </div>
+                <span className="tag">Gharimeen</span>
+              </div>
+              <div className="progress">
+                <i style={{ width: '45%' }}></i>
+              </div>
+              <div className="nums">
+                <span>Received <b>₹4,950</b></span>
+                <span style={{ color: 'var(--muted)' }}>Kozhikode Beach · Kozhikode</span>
+              </div>
+            </div>
+
+            <div className="recip">
+              <div className="top">
+                <div>
+                  <h3>Family C</h3>
+                  <div className="need">Daily living costs & medicine</div>
+                </div>
+                <span className="tag">Masakeen</span>
+              </div>
+              <div className="progress">
+                <i style={{ width: '80%' }}></i>
+              </div>
+              <div className="nums">
+                <span>Received <b>₹2,800</b></span>
+                <span style={{ color: 'var(--muted)' }}>Thalassery · Kannur</span>
+              </div>
+            </div>
+
+            <div className="recip">
+              <div className="top">
+                <div>
+                  <h3>Family D</h3>
+                  <div className="need">Medical treatment grant</div>
+                </div>
+                <span className="tag">Fuqara</span>
+              </div>
+              <div className="progress">
+                <i style={{ width: '27%' }}></i>
+              </div>
+              <div className="nums">
+                <span>Received <b>₹6,000</b></span>
+                <span style={{ color: 'var(--muted)' }}>Malappuram Town · Malappuram</span>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
-    </section>
-    {isSuper ? <SuperStats /> : activeMahallu ? <AdminStats mahalluId={activeMahallu.mahalluId} /> : null}
-    {mine.loading && !mine.data ? <Loading /> : mine.data && <MyUdhiyya programs={mine.data} reload={mine.reload} />}
-    {mine.error && <ErrorNote message={mine.error} />}
-  </div>;
+
+      {/* Right Sticky Rail */}
+      <RightRail
+        goalTitle="Family support"
+        goalRaised={7200}
+        goalTarget={10000}
+        goalLabel="ASSISTANCE GOAL"
+        insightQuote="“Your contributions are helping eligible families in your community.”"
+        insightLabel="ZAKAT INSIGHT"
+        activityLink={activeMahallu ? '/app/manage/ledger' : '/app/payments'}
+      />
+    </div>
+  );
 }

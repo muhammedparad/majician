@@ -4,11 +4,12 @@ import { useAuth } from '../../contexts/auth';
 import { greeting } from '../lib/app-context';
 import { animalLabel, dateText, inr, payModeLabel, type MyBooking, type MyProgram } from '../lib/programs';
 import { downloadReceipt } from '../lib/receipt';
-import { IconBell, IconDownload } from '../ui/Icons';
+import { IconBell, IconDownload, IconPackage } from '../ui/Icons';
 import { ErrorNote, Loading, useFetch } from '../ui/kit';
 import { IconAnimal, IconCalendar, IconMegaphone, IconPlusCircle, IconPulse, IconReceipt, IconWallet } from '../ui/more-icons';
-import { Photo, Skyline, Stepper, statusWord, stepsWithDelivery, type Status } from '../ui/visuals';
-import { IconPackage } from '../ui/Icons';
+import { Photo, Stepper, statusWord, stepsWithDelivery, type Status } from '../ui/visuals';
+import { KnowMore } from '../ui/KnowMore';
+import { RightRail } from '../ui/RightRail';
 import { PayModal } from './PaymentPanel';
 import { SelectionModal } from './SelectionModal';
 
@@ -24,11 +25,6 @@ const ago = (value: string) => {
   const days = Math.round(minutes / 1440);
   return days === 1 ? 'Yesterday' : `${days} days ago`;
 };
-
-function Strip({ items }: { items: { icon: ReactNode; label: string; value: ReactNode; sub?: string }[] }) {
-  return <div className="am-strip card" role="list">{items.map(item => <div key={item.label} className="am-strip-item" role="listitem">
-    <span className="am-strip-icon">{item.icon}</span><div><span className="am-strip-label">{item.label}</span><b>{item.value}</b>{item.sub && <span>{item.sub}</span>}</div></div>)}</div>;
-}
 
 function bannerFor(status: Status, hasCode: boolean, delivered: boolean) {
   if (delivered) return 'Your household has received its meat. Thank you for your Udhiyya.';
@@ -66,78 +62,145 @@ export function MemberDashboard({ programs, reload }: { programs: MyProgram[]; r
     programme: first.program.name, animal: entries.map(item => animalLabel[item.booking.animalType]).join(', '), shares, total, paid, remaining: total - paid,
     payments: entries.flatMap(item => item.booking.payments.filter(row => row.status === 'CONFIRMED')) });
 
-  return <div className="stack">
-    <section className="am-hero2" aria-label="Welcome">
-      <div><span className="am-hero2-eyebrow">ASSALAMU ALAIKUM</span><h1>{greeting()}, {user.name.split(' ')[0]}.</h1>
-        <p>Here is your Udhiyya at a glance. Track, pay, and follow the process until your meat is delivered.</p></div>
-      <Skyline />
-    </section>
+  const nameParts = user.name.split(' ');
+  const firstName = nameParts[0] || 'Muhammed';
+  const lastName = nameParts.slice(1).join(' ') || 'Parad';
 
-    <Strip items={[
-      { icon: <IconAnimal />, label: 'My animal', value: entries.map(item => animalLabel[item.booking.animalType]).filter((name, index, all) => all.indexOf(name) === index).join(', '), sub: `${shares} ${shares === 1 ? 'share' : 'shares'}` },
-      { icon: <IconWallet />, label: 'Payment', value: inr(paid), sub: `of ${inr(total)} paid` },
-      { icon: <IconPulse />, label: 'Status', value: <span className="am-pill">{statusLabel}</span> },
-      { icon: <IconCalendar />, label: 'Last date to pay', value: dateText(first.program.payBy) },
-    ]} />
+  return (
+    <div className="dgrid">
+      {/* Left Column */}
+      <div>
+        {/* Hero Panel */}
+        <section className="hero-panel" aria-label="Welcome">
+          <span className="tag live">
+            <i />
+            {first.program.mahalluName} · Verified Member
+          </span>
+          <h1 style={{ marginTop: 16 }}>
+            {greeting()}, {firstName} <span className="serif">{lastName}.</span>
+          </h1>
+          <p className="sub">
+            Your Udhiyya overview for {first.program.mahalluName} — every contribution verified, every distribution tracked.
+          </p>
 
-    <div className="am-dashgrid">
-      <div className="stack">
-        {entries.map(({ program, booking }) => {
-          const placed = booking.animals.length ? booking.animals : [null];
-          return placed.map((animal, index) => {
-            const status: Status = animal?.status ?? 'PENDING';
-            const at = delivered && status === 'PACKED' ? 4 : ['PENDING', 'SLAUGHTERED', 'PROCESSING', 'PACKED'].indexOf(status);
-            return <article key={booking.id + index} className="card am-myanimal am-reveal">
-              <Photo type={booking.animalType} />
-              <div className="am-myanimal-body">
-                <div className="am-headrow" style={{ alignItems: 'center' }}>
-                  <div><h2>My animal{animal ? ` — ${animal.code}` : ''}</h2>
-                    <span className="am-sub">{animalLabel[booking.animalType]} · {animal ? animal.shares : booking.shares} {(animal ? animal.shares : booking.shares) === 1 ? 'share' : 'shares'} · {payModeLabel[booking.payMode]}</span></div>
-                  <span className="tag">{program.status === 'OPEN' ? 'Open' : 'Ended'}</span></div>
-                <Stepper list={stepsWithDelivery} at={at} label={`Animal progress: ${animal ? statusWord[status] : 'Waiting'}`} />
-              </div>
-              <div className="am-banner"><span aria-hidden="true">i</span>{bannerFor(status, Boolean(animal), delivered && at === 4)}</div>
-            </article>;
-          });
-        })}
-        {open && <button type="button" className="am-linkbtn" style={{ justifySelf: 'start' }} onClick={() => setEditing(true)}>Edit my selection</button>}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 22, position: 'relative', zIndex: 1 }}>
+            <button
+              type="button"
+              className="pillbtn light"
+              disabled={owing.length === 0 || !open}
+              onClick={payNow}
+            >
+              {owing.length === 0 ? 'Fully paid' : 'Make payment'}
+            </button>
+            <Link
+              className="pillbtn"
+              style={{ background: 'rgba(255,255,255,.14)', boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,.4)' }}
+              to="/app/tracking"
+            >
+              Track animal
+            </Link>
+            <button
+              type="button"
+              className="pillbtn"
+              style={{ background: 'rgba(255,255,255,.14)', boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,.4)' }}
+              onClick={receipt}
+            >
+              Download receipt
+            </button>
+          </div>
+
+          <div style={{ marginTop: 26, position: 'relative', zIndex: 1 }}>
+            <div className="lbl" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.16em', color: '#a9d4c2' }}>
+              UDHIYYA OVERVIEW · TOTAL CONTRIBUTED
+            </div>
+            <div style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: 42, letterSpacing: '-.02em' }}>
+              {inr(paid)}
+            </div>
+          </div>
+        </section>
+
+        {/* 4 Stat Cards in a clean row */}
+        <div className="stat-grid" role="list" aria-label="Your totals">
+          <div className="stat" role="listitem">
+            <div className="eyebrow">My Animal</div>
+            <div className="v">{entries.map(item => animalLabel[item.booking.animalType]).filter((name, index, all) => all.indexOf(name) === index).join(', ')}</div>
+            <div className="s">{shares} {shares === 1 ? 'share' : 'shares'} booked</div>
+          </div>
+
+          <div className="stat" role="listitem">
+            <div className="eyebrow">Payment Status</div>
+            <div className="v">{inr(paid)}</div>
+            <div className="s">of {inr(total)} · {percent}% paid</div>
+          </div>
+
+          <div className="stat" role="listitem">
+            <div className="eyebrow">Animal Status</div>
+            <div className="v" style={{ fontSize: 21, paddingTop: 4 }}>{statusLabel}</div>
+            <div className="s">Last date: {dateText(first.program.payBy)}</div>
+          </div>
+
+          <div className="stat" role="listitem">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="eyebrow" style={{ margin: 0 }}>Mahallu Status</div>
+              <KnowMore title="Mahallu Verification" ariaLabel="Know more about Mahallu status">
+                <p style={{ margin: 0 }}>
+                  Active membership verified with {first.program.mahalluName} committee. All records are audited and reconciled locally.
+                </p>
+              </KnowMore>
+            </div>
+            <div className="v" style={{ fontSize: 21, paddingTop: 5 }}>Verified Member</div>
+            <div className="s">{first.program.mahalluName}</div>
+          </div>
+        </div>
+
+        {/* Animal Details & Stepper */}
+        <div style={{ marginTop: 22 }}>
+          {entries.map(({ program, booking }) => {
+            const placed = booking.animals.length ? booking.animals : [null];
+            return placed.map((animal, index) => {
+              const status: Status = animal?.status ?? 'PENDING';
+              const at = delivered && status === 'PACKED' ? 4 : ['PENDING', 'SLAUGHTERED', 'PROCESSING', 'PACKED'].indexOf(status);
+              return (
+                <article key={booking.id + index} className="card am-myanimal am-reveal" style={{ marginBottom: 18 }}>
+                  <Photo type={booking.animalType} />
+                  <div className="am-myanimal-body">
+                    <div className="am-headrow" style={{ alignItems: 'center' }}>
+                      <div>
+                        <h2>My animal{animal ? ` — ${animal.code}` : ''}</h2>
+                        <span className="am-sub">
+                          {animalLabel[booking.animalType]} · {animal ? animal.shares : booking.shares} {(animal ? animal.shares : booking.shares) === 1 ? 'share' : 'shares'} · {payModeLabel[booking.payMode]}
+                        </span>
+                      </div>
+                      <span className="tag">{program.status === 'OPEN' ? 'Open' : 'Ended'}</span>
+                    </div>
+                    <Stepper list={stepsWithDelivery} at={at} label={`Animal progress: ${animal ? statusWord[status] : 'Waiting'}`} />
+                  </div>
+                  <div className="am-banner"><span aria-hidden="true">i</span>{bannerFor(status, Boolean(animal), delivered && at === 4)}</div>
+                </article>
+              );
+            });
+          })}
+          {open && (
+            <button type="button" className="pillbtn ghost sm" onClick={() => setEditing(true)}>
+              Edit my selection
+            </button>
+          )}
+        </div>
       </div>
 
-      <article className="card am-mypay am-reveal">
-        <div className="am-headrow" style={{ alignItems: 'center' }}><div className="am-cardhead" style={{ margin: 0 }}><span className="am-tile sm"><IconWallet /></span><h2>My payments</h2></div>
-          <Link className="am-viewall" to="/app/payments">View all →</Link></div>
-        <div className="am-bigfig">{inr(paid)} <span>of {inr(total)}</span></div>
-        <div className="am-bar"><div className="progress" role="progressbar" aria-label="Amount paid" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}><i style={{ width: percent + '%' }} /></div><b>{percent}%</b></div>
-        <div className="am-two"><div><span>Payment type</span><b>{payModeLabel[first.booking.payMode]}</b></div><div><span>Pay by</span><b className="green">{dateText(first.program.payBy)}</b></div></div>
-        <button type="button" className="pillbtn am-wide" disabled={owing.length === 0 || !open} onClick={payNow}>{owing.length === 0 ? 'Fully paid' : 'Pay now'}</button>
-      </article>
-    </div>
+      {/* Right Sticky Rail */}
+      <RightRail
+        goalTitle={`${first.program.name} Goal`}
+        goalRaised={paid}
+        goalTarget={total > 0 ? total : 10000}
+        goalLabel="UDHIYYA GOAL"
+        insightQuote="“Their meat will not reach Allah, nor will their blood, but what reaches Him is piety from you.” (Surah Al-Hajj 22:37)"
+        insightLabel="SUNNAH INSIGHT"
+        activityLink="/app/payments"
+      />
 
-    <div className="am-dashgrid am-dashgrid-b">
-      <section className="card">
-        <h2 className="am-h2">Quick actions</h2>
-        <div className="am-actions">
-          <button type="button" disabled={owing.length === 0 || !open} onClick={payNow}><IconPlusCircle /><span>Make payment</span></button>
-          <Link to="/app/tracking"><IconPackage /><span>Track my animal</span></Link>
-          <Link to="/app/payments"><IconReceipt /><span>Payment history</span></Link>
-          <button type="button" onClick={receipt}><IconDownload /><span>Download receipt</span></button>
-        </div>
-      </section>
-      <section className="card">
-        <div className="am-headrow" style={{ alignItems: 'center' }}><div className="am-cardhead" style={{ margin: 0 }}><span className="am-tile sm"><IconBell /></span><h2>Updates and notifications</h2></div>
-          <Link className="am-viewall" to="/app/notifications">View all →</Link></div>
-        <div className="am-updates">
-          {inbox.data?.items.slice(0, 3).map(item => <div key={item.id} className="am-update"><span className="am-tile sm"><IconMegaphone /></span>
-            <div><b>{item.title}</b><span>{item.body}</span></div><time>{ago(item.createdAt)}</time></div>)}
-          {owing.length > 0 && <div className="am-update"><span className="am-tile sm"><IconCalendar /></span>
-            <div><b>Last date to pay: {dateText(first.program.payBy)}</b><span>Complete your contribution on time.</span></div><time>Reminder</time></div>}
-          {inbox.loading && !inbox.data && <Loading />}
-          {inbox.data && inbox.data.items.length === 0 && owing.length === 0 && <p className="am-note">Nothing new right now.</p>}
-          {inbox.error && <ErrorNote message={inbox.error} />}
-        </div>
-      </section>
+      {paying && <PayModal bookingId={paying.id} money={paying.money} close={() => setPaying(null)} done={reload} />}
+      {editing && <SelectionModal programs={programs} reload={reload} close={() => setEditing(false)} />}
     </div>
-    {paying && <PayModal bookingId={paying.id} money={paying.money} close={() => setPaying(null)} done={reload} />}
-    {editing && <SelectionModal programs={programs} reload={reload} close={() => setEditing(false)} />}
-  </div>;
+  );
 }
