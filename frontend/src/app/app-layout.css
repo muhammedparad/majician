@@ -85,4 +85,26 @@
 .am .chat-panel .field { display: grid; gap: 6px; font-weight: 600; font-size: 13px; }
 .am .chat-panel input { width: 100%; min-height: 46px; border: 1.5px solid var(--line); border-radius: 14px; padding: 9px 13px; background: #fff; }
 .am .chat-panel button[type=submit] { background: var(--green); color: #fff; border-radius: 999px; min-height: 44px; padding: 0 22px; font-weight: 600; width: 100%; }
-@media (max-width: 1023px) { .am .chat { inset: auto 14px 100px auto; } }
+@media (max-width: 1023px) {
+  .am .chat {
+    inset: auto 16px calc(78px + env(safe-area-inset-bottom)) auto !important;
+    z-index: 65 !important;
+  }
+  .am .chat > button {
+    padding: 9px 16px !important;
+    font-size: 13px !important;
+    min-height: 38px !important;
+    box-shadow: 0 8px 20px rgba(11, 42, 34, .25) !important;
+  }
+  .am .chat-panel {
+    position: fixed !important;
+    inset: auto 14px calc(126px + env(safe-area-inset-bottom)) 14px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100vh - 160px) !important;
+    overflow-y: auto !important;
+    border-radius: 22px !important;
+    padding: 16px !important;
+    z-index: 75 !important;
+  }
+}
