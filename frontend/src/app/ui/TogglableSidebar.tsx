@@ -85,8 +85,8 @@ export const TogglableSidebar: React.FC<TogglableSidebarProps> = ({ isOpen, onCl
           {/* Drawer Header */}
           <div className="dside-head">
             <span className="logo">
-              <span className="mark">A</span>
-              AMANAH
+              <span className="mark">U</span>
+              UDHIYYA SAVER
             </span>
             <button
               type="button"

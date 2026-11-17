@@ -24,12 +24,12 @@ export interface RightRailProps {
 }
 
 export const RightRail: React.FC<RightRailProps> = ({
-  goalTitle = 'Family support',
+  goalTitle = 'Eid Meat Distribution',
   goalRaised = 7200,
   goalTarget = 10000,
-  goalLabel = 'ASSISTANCE GOAL',
-  insightQuote = '“Your contributions are helping eligible families in your community.”',
-  insightLabel = 'ZAKAT INSIGHT',
+  goalLabel = 'UDHIYYA GOAL',
+  insightQuote = '“Your Udhiyya contributions and shares are distributed directly to eligible families across your Mahallu for Eid.”',
+  insightLabel = 'EID INSIGHT',
   activityLink = '/app/manage/ledger',
   activities
 }) => {
@@ -39,21 +39,21 @@ export const RightRail: React.FC<RightRailProps> = ({
     {
       icon: 'users',
       cls: 'amber',
-      title: 'Manual handover recorded',
+      title: 'Manual meat handover recorded',
       amount: '−₹8,80,426',
       isPlus: false
     },
     {
       icon: 'hand',
       cls: '',
-      title: 'Assistance received',
+      title: 'Meat distribution confirmed',
       amount: '+₹15,000',
       isPlus: true
     },
     {
       icon: 'heart',
       cls: '',
-      title: 'Zakat contribution',
+      title: 'Udhiyya contribution',
       amount: '−₹20,000',
       isPlus: false
     }

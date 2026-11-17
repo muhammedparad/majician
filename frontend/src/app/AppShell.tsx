@@ -86,7 +86,7 @@ function Desktop({ groups }: { groups: Group[] }) {
   if (!user) return null;
 
   const siteNavLinks = [
-    { to: '/app', label: 'Donate' },
+    { to: '/app', label: 'Dashboard' },
     ...(adminOf.length > 0 ? [
       { to: '/app/members', label: 'Members' },
       { to: '/app/manage/programs', label: 'Programs' },
@@ -102,11 +102,11 @@ function Desktop({ groups }: { groups: Group[] }) {
       { to: '/app/volunteer/activity', label: 'Activity' }
     ] : []),
     ...(!adminOf.length && !volunteer && !isSuper ? [
-      { to: '/app/tracking', label: 'Assistance' },
-      { to: '/app/payments', label: 'Calculator' }
+      { to: '/app/tracking', label: 'Track Animal' },
+      { to: '/app/payments', label: 'Payments' }
     ] : []),
-    { to: '/app/profile', label: 'About' },
-    { to: '/transparency', label: 'Resources' }
+    { to: '/app/profile', label: 'Profile' },
+    { to: '/transparency', label: 'Network' }
   ];
 
   return (
@@ -114,7 +114,7 @@ function Desktop({ groups }: { groups: Group[] }) {
       {/* Top Subtle Marquee */}
       <div className="marquee" aria-hidden="true">
         <span className="track">
-          {'GIVE · VERIFY · DISTRIBUTE · TRACK · SAVE · PAY · SHARE · '.repeat(8)}
+          {'DISTRIBUTE · SAVE · PAY · SHARE · DISTRIBUTE · SAVE · PAY · SHARE · '.repeat(8)}
         </span>
       </div>
 
@@ -130,9 +130,9 @@ function Desktop({ groups }: { groups: Group[] }) {
           <IconMenu />
         </button>
 
-        <Link className="logo" to="/app" aria-label="Dashboard home">
-          <span className="mark">A</span>
-          AMANAH
+        <Link className="logo" to="/app" aria-label="Udhiyya Saver dashboard">
+          <span className="mark">U</span>
+          UDHIYYA SAVER
         </Link>
 
         {/* Site Nav */}
@@ -188,7 +188,7 @@ function Desktop({ groups }: { groups: Group[] }) {
       <footer className="foot" style={{ maxWidth: 1360, margin: '0 auto', padding: '0 20px 40px', color: 'var(--muted)', fontSize: 13.5 }}>
         <div className="divider" style={{ marginBottom: 18 }}></div>
         <p>
-          <strong style={{ color: 'var(--ink2)' }}>AMANAH</strong> — Zakat, Made <span className="serif" style={{ fontSize: 15 }}>Clearer</span> by Design. Verified Zakat management for {user.name} · Kannur Mahallu, Kerala. Demo experience: figures are sample data stored only in this browser.
+          <strong style={{ color: 'var(--ink2)' }}>UDHIYYA SAVER</strong> — Verified Eid al-Adha &amp; Udhiyya Management by Design. Community sacrifice, savings and meat distribution for {user.name} · Kannur Mahallu, Kerala.
         </p>
       </footer>
 
